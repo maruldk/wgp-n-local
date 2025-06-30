@@ -12,6 +12,7 @@ import {
   ReportType
 } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import seedEventOrchestration from './seed-events';
 
 const prisma = new PrismaClient();
 
@@ -754,6 +755,10 @@ async function main() {
   }
 
   console.log('✅ Created wePROJECT demo data');
+
+  // Seed Event Orchestration System
+  console.log('🚀 Seeding Event Orchestration...');
+  await seedEventOrchestration();
 
   console.log('🎉 Seed completed successfully with all modules!');
 }

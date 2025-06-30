@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { PrismaClient } from '@prisma/client';
-import { AIOrchestrator } from '@/lib/ai/orchestrator';
+import { getOrchestrator, AIEventOrchestrator } from '@/lib/ai/orchestrator';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const category = url.searchParams.get('category');
     const limit = parseInt(url.searchParams.get('limit') || '10');
 
-    const orchestrator = new AIOrchestrator(prisma);
+    const orchestrator = new AIEventOrchestrator(prisma);
     const insights = await orchestrator.getAIInsights(
       session.user.tenantId,
       category || undefined,
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { analysisType, data, context } = body;
 
-    const orchestrator = new AIOrchestrator(prisma);
+    const orchestrator = new AIEventOrchestrator(prisma);
     
     const aiContext = {
       userId: session.user.id,
@@ -95,7 +95,7 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { insightId, actionTaken } = body;
 
-    const orchestrator = new AIOrchestrator(prisma);
+    const orchestrator = new AIEventOrchestrator(prisma);
     await orchestrator.markInsightAsRead(insightId, actionTaken);
 
     return NextResponse.json({ success: true });

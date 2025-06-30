@@ -400,4 +400,282 @@ export class LLMService {
 
     return basePrompt;
   }
+
+  /**
+   * Event-driven AI analysis methods
+   */
+  async analyzeInvoice(invoiceData: any): Promise<any> {
+    try {
+      const prompt = `Analyze this invoice data and provide intelligent categorization and insights:
+
+Invoice Data: ${JSON.stringify(invoiceData, null, 2)}
+
+Please analyze and return JSON with:
+1. category: Best category for this invoice (e.g., "office_supplies", "marketing", "software", "consulting")
+2. confidence: Confidence score (0-1)
+3. insights: Array of actionable insights
+4. anomalies: Any potential issues or anomalies detected
+5. recommendations: Suggestions for process improvement
+
+Respond with raw JSON only.`;
+
+      const response = await this.chatCompletion({
+        messages: [
+          { role: 'system', content: 'You are a financial AI analyst. Analyze invoices and provide intelligent categorization and insights.' },
+          { role: 'user', content: prompt }
+        ],
+        response_format: { type: 'json_object' }
+      });
+
+      return this.sanitizeJsonResponse(response.choices[0]?.message?.content || '{}');
+    } catch (error) {
+      console.error('Invoice analysis failed:', error);
+      return {
+        category: 'unknown',
+        confidence: 0.5,
+        insights: [],
+        anomalies: [],
+        recommendations: []
+      };
+    }
+  }
+
+  async optimizeProject(projectData: any): Promise<any> {
+    try {
+      const prompt = `Analyze this project data and provide optimization recommendations:
+
+Project Data: ${JSON.stringify(projectData, null, 2)}
+
+Please analyze and return JSON with:
+1. summary: Brief optimization summary
+2. recommendations: Array of specific optimization recommendations
+3. risks: Potential risks identified
+4. resourceOptimization: Suggestions for better resource allocation
+5. timeline: Timeline optimization suggestions
+6. confidence: Confidence score (0-1)
+
+Respond with raw JSON only.`;
+
+      const response = await this.chatCompletion({
+        messages: [
+          { role: 'system', content: 'You are a project management AI expert. Analyze projects and provide optimization recommendations.' },
+          { role: 'user', content: prompt }
+        ],
+        response_format: { type: 'json_object' }
+      });
+
+      return this.sanitizeJsonResponse(response.choices[0]?.message?.content || '{}');
+    } catch (error) {
+      console.error('Project optimization failed:', error);
+      return {
+        summary: 'Analysis unavailable',
+        recommendations: [],
+        risks: [],
+        resourceOptimization: [],
+        timeline: [],
+        confidence: 0.5
+      };
+    }
+  }
+
+  async detectAnomalies(anomalyData: any): Promise<any> {
+    try {
+      const prompt = `Analyze this event data for anomalies and unusual patterns:
+
+Current Event: ${JSON.stringify(anomalyData.currentEvent, null, 2)}
+Recent Events: ${JSON.stringify(anomalyData.recentEvents, null, 2)}
+Event Patterns: ${JSON.stringify(anomalyData.patterns, null, 2)}
+
+Please analyze and return JSON with:
+1. isAnomaly: Boolean indicating if this is an anomaly
+2. confidence: Confidence score (0-1)
+3. type: Type of anomaly (e.g., "volume", "timing", "pattern", "value")
+4. description: Detailed description of the anomaly
+5. severity: Severity level ("LOW", "MEDIUM", "HIGH", "CRITICAL")
+6. possibleCauses: Array of possible causes
+7. recommendedActions: Array of recommended actions
+
+Respond with raw JSON only.`;
+
+      const response = await this.chatCompletion({
+        messages: [
+          { role: 'system', content: 'You are an AI anomaly detection expert. Identify unusual patterns and potential issues in business data.' },
+          { role: 'user', content: prompt }
+        ],
+        response_format: { type: 'json_object' }
+      });
+
+      return this.sanitizeJsonResponse(response.choices[0]?.message?.content || '{}');
+    } catch (error) {
+      console.error('Anomaly detection failed:', error);
+      return {
+        isAnomaly: false,
+        confidence: 0.5,
+        type: 'unknown',
+        description: 'Analysis unavailable',
+        severity: 'LOW',
+        possibleCauses: [],
+        recommendedActions: []
+      };
+    }
+  }
+
+  async analyzeFinanceEvent(event: any): Promise<any> {
+    try {
+      const prompt = `Analyze this finance event and provide insights:
+
+Event: ${JSON.stringify(event, null, 2)}
+
+Please analyze and return JSON with:
+1. insights: Array of financial insights
+2. riskAssessment: Risk level and factors
+3. recommendations: Financial recommendations
+4. impactAnalysis: Potential business impact
+5. confidence: Confidence score (0-1)
+
+Respond with raw JSON only.`;
+
+      const response = await this.chatCompletion({
+        messages: [
+          { role: 'system', content: 'You are a financial AI analyst. Analyze financial events and provide strategic insights.' },
+          { role: 'user', content: prompt }
+        ],
+        response_format: { type: 'json_object' }
+      });
+
+      return this.sanitizeJsonResponse(response.choices[0]?.message?.content || '{}');
+    } catch (error) {
+      console.error('Finance event analysis failed:', error);
+      return { status: 'processed', confidence: 0.5 };
+    }
+  }
+
+  async analyzeProjectEvent(event: any): Promise<any> {
+    try {
+      const prompt = `Analyze this project event and provide insights:
+
+Event: ${JSON.stringify(event, null, 2)}
+
+Please analyze and return JSON with:
+1. insights: Array of project insights
+2. statusAssessment: Project health and status assessment
+3. recommendations: Project management recommendations
+4. riskFactors: Potential risks and mitigation strategies
+5. confidence: Confidence score (0-1)
+
+Respond with raw JSON only.`;
+
+      const response = await this.chatCompletion({
+        messages: [
+          { role: 'system', content: 'You are a project management AI expert. Analyze project events and provide management insights.' },
+          { role: 'user', content: prompt }
+        ],
+        response_format: { type: 'json_object' }
+      });
+
+      return this.sanitizeJsonResponse(response.choices[0]?.message?.content || '{}');
+    } catch (error) {
+      console.error('Project event analysis failed:', error);
+      return { status: 'processed', confidence: 0.5 };
+    }
+  }
+
+  async analyzeAnalyticsEvent(event: any): Promise<any> {
+    try {
+      const prompt = `Analyze this analytics event and provide insights:
+
+Event: ${JSON.stringify(event, null, 2)}
+
+Please analyze and return JSON with:
+1. insights: Array of analytical insights
+2. trendAnalysis: Trend identification and analysis
+3. recommendations: Data-driven recommendations
+4. predictiveInsights: Predictive insights based on the data
+5. confidence: Confidence score (0-1)
+
+Respond with raw JSON only.`;
+
+      const response = await this.chatCompletion({
+        messages: [
+          { role: 'system', content: 'You are a data analytics AI expert. Analyze data events and provide analytical insights.' },
+          { role: 'user', content: prompt }
+        ],
+        response_format: { type: 'json_object' }
+      });
+
+      return this.sanitizeJsonResponse(response.choices[0]?.message?.content || '{}');
+    } catch (error) {
+      console.error('Analytics event analysis failed:', error);
+      return { status: 'processed', confidence: 0.5 };
+    }
+  }
+
+  async performAnalysis(analysisConfig: any): Promise<any> {
+    try {
+      const prompt = `Perform AI analysis based on this configuration:
+
+Configuration: ${JSON.stringify(analysisConfig, null, 2)}
+
+Please analyze the data according to the configuration and return JSON with:
+1. results: Analysis results
+2. insights: Key insights discovered
+3. recommendations: Actionable recommendations
+4. confidence: Confidence score (0-1)
+5. metadata: Additional analysis metadata
+
+Respond with raw JSON only.`;
+
+      const response = await this.chatCompletion({
+        messages: [
+          { role: 'system', content: 'You are an AI analysis expert. Perform detailed analysis based on provided configurations and data.' },
+          { role: 'user', content: prompt }
+        ],
+        response_format: { type: 'json_object' }
+      });
+
+      return this.sanitizeJsonResponse(response.choices[0]?.message?.content || '{}');
+    } catch (error) {
+      console.error('Analysis failed:', error);
+      return {
+        results: {},
+        insights: [],
+        recommendations: [],
+        confidence: 0.5,
+        metadata: {}
+      };
+    }
+  }
+
+  /**
+   * Enhanced JSON sanitization
+   */
+  private sanitizeJsonResponse(jsonString: string): any {
+    try {
+      // Remove markdown code blocks if present
+      const cleaned = jsonString
+        .replace(/```json\s*/g, '')
+        .replace(/```\s*/g, '')
+        .trim();
+
+      // Parse JSON
+      const parsed = JSON.parse(cleaned);
+      
+      // Validate structure
+      if (typeof parsed !== 'object' || parsed === null) {
+        throw new Error('Invalid JSON structure');
+      }
+
+      return parsed;
+    } catch (error) {
+      console.error('JSON sanitization failed:', error);
+      console.error('Original JSON string:', jsonString);
+      
+      // Return fallback object
+      return {
+        error: 'JSON parsing failed',
+        confidence: 0.0,
+        fallback: true
+      };
+    }
+  }
 }

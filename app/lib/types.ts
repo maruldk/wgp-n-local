@@ -10,8 +10,49 @@ import {
   TaskStatus,
   TaskPriority,
   WidgetType,
-  ReportType
+  ReportType,
+  EventType,
+  EventPriority,
+  EventStatus,
+  HandlerStatus,
+  WorkflowExecStatus,
+  StepType,
+  StepStatus,
+  NotificationType,
+  NotificationSeverity,
+  MLModelType,
+  MLModelStatus,
+  MLTrainingStatus,
+  MLPredictionType,
+  MLAnomalyType,
+  AnomalySeverity,
+  AnomalyStatus,
+  MLFeatureType,
+  MLExperimentType,
+  MLExperimentStatus,
+  MLPipelineType,
+  MLPipelineStatus,
+  MLExecutionStatus,
+  MLMetricType
 } from '@prisma/client';
+
+// Re-export ML types for easier imports
+export {
+  MLModelType,
+  MLModelStatus,
+  MLTrainingStatus,
+  MLPredictionType,
+  MLAnomalyType,
+  AnomalySeverity,
+  AnomalyStatus,
+  MLFeatureType,
+  MLExperimentType,
+  MLExperimentStatus,
+  MLPipelineType,
+  MLPipelineStatus,
+  MLExecutionStatus,
+  MLMetricType
+};
 
 export interface User {
   id: string;
@@ -373,4 +414,1134 @@ declare module 'next-auth/jwt' {
     tenantId?: string | null;
     tenantName?: string | null;
   }
+}
+
+// ==================== EVENT-DRIVEN ORCHESTRATION TYPES ====================
+
+export interface EventBusItem {
+  id: string;
+  eventType: EventType;
+  eventName: string;
+  source: string;
+  target?: string | null;
+  payload: any;
+  metadata?: any;
+  priority: EventPriority;
+  status: EventStatus;
+  retryCount: number;
+  maxRetries: number;
+  scheduledAt?: Date | null;
+  processedAt?: Date | null;
+  errorLog?: string | null;
+  tenantId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  handlers?: EventHandlerItem[];
+  correlations?: EventCorrelationItem[];
+}
+
+export interface EventHandlerItem {
+  id: string;
+  eventBusId: string;
+  handlerName: string;
+  module: string;
+  status: HandlerStatus;
+  executedAt?: Date | null;
+  executionTime?: number | null;
+  errorMessage?: string | null;
+  result?: any;
+  tenantId: string;
+  createdAt: Date;
+}
+
+export interface EventCorrelationItem {
+  id: string;
+  correlationId: string;
+  eventBusId: string;
+  parentEventId?: string | null;
+  workflowId?: string | null;
+  sequenceNumber: number;
+  tenantId: string;
+  createdAt: Date;
+}
+
+export interface EventSubscriptionItem {
+  id: string;
+  subscriberId: string;
+  eventPattern: string;
+  isActive: boolean;
+  priority: number;
+  filterConfig?: any;
+  tenantId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface WorkflowDefinitionItem {
+  id: string;
+  name: string;
+  description?: string | null;
+  version: string;
+  triggerEvent: string;
+  steps: any;
+  isActive: boolean;
+  tenantId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  executions?: WorkflowExecutionItem[];
+}
+
+export interface WorkflowExecutionItem {
+  id: string;
+  workflowDefinitionId: string;
+  correlationId: string;
+  status: WorkflowExecStatus;
+  currentStep: number;
+  totalSteps: number;
+  startTime: Date;
+  endTime?: Date | null;
+  inputData: any;
+  outputData?: any;
+  errorMessage?: string | null;
+  retryCount: number;
+  tenantId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  workflowDefinition?: WorkflowDefinitionItem;
+  steps?: WorkflowStepItem[];
+}
+
+export interface WorkflowStepItem {
+  id: string;
+  workflowExecutionId: string;
+  stepNumber: number;
+  stepName: string;
+  stepType: StepType;
+  status: StepStatus;
+  inputData?: any;
+  outputData?: any;
+  errorMessage?: string | null;
+  startTime?: Date | null;
+  endTime?: Date | null;
+  executionTime?: number | null;
+  retryCount: number;
+  tenantId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface RealTimeNotificationItem {
+  id: string;
+  userId?: string | null;
+  title: string;
+  message: string;
+  type: NotificationType;
+  severity: NotificationSeverity;
+  data?: any;
+  isRead: boolean;
+  isPersistent: boolean;
+  channel?: string | null;
+  expiresAt?: Date | null;
+  tenantId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  user?: {
+    name?: string | null;
+    email: string;
+  };
+}
+
+export interface AIOrchestrationMetricsItem {
+  id: string;
+  eventProcessedCount: number;
+  avgProcessingTime: number;
+  successRate: number;
+  errorRate: number;
+  automationScore: number;
+  workflowSuccessRate: number;
+  aiDecisionAccuracy: number;
+  userSatisfactionScore: number;
+  date: Date;
+  tenantId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Event System Interfaces
+export interface EventPayload {
+  [key: string]: any;
+}
+
+export interface EventMetadata {
+  userId?: string;
+  tenantId: string;
+  timestamp: Date;
+  source: string;
+  correlationId?: string;
+  traceId?: string;
+}
+
+export interface EventHandler {
+  name: string;
+  module: string;
+  handler: (event: EventBusItem) => Promise<any>;
+  priority: number;
+  filter?: (event: EventBusItem) => boolean;
+}
+
+export interface WorkflowStep {
+  name: string;
+  type: StepType;
+  config: any;
+  condition?: string;
+  retryPolicy?: {
+    maxRetries: number;
+    backoffMultiplier: number;
+    initialDelay: number;
+  };
+}
+
+export interface WorkflowDefinition {
+  name: string;
+  description?: string;
+  version: string;
+  triggerEvent: string;
+  steps: WorkflowStep[];
+  isActive: boolean;
+}
+
+export interface EventBusConfig {
+  retryPolicy: {
+    maxRetries: number;
+    backoffMultiplier: number;
+    initialDelay: number;
+  };
+  deadLetterQueue: {
+    enabled: boolean;
+    maxRetentionDays: number;
+  };
+  metrics: {
+    enabled: boolean;
+    samplingRate: number;
+  };
+}
+
+export interface RealtimeUpdate {
+  type: 'EVENT' | 'NOTIFICATION' | 'WORKFLOW' | 'METRIC';
+  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'COMPLETE' | 'FAIL';
+  data: any;
+  timestamp: Date;
+  userId?: string;
+  tenantId: string;
+}
+
+export interface WebSocketMessage {
+  id: string;
+  type: 'REALTIME_UPDATE' | 'NOTIFICATION' | 'HEARTBEAT' | 'ERROR';
+  payload: any;
+  timestamp: Date;
+  channel?: string;
+}
+
+// Analytics & Performance Types
+export interface EventProcessingMetrics {
+  eventId: string;
+  processingStartTime: Date;
+  processingEndTime: Date;
+  duration: number;
+  status: 'SUCCESS' | 'FAILED' | 'TIMEOUT';
+  errorMessage?: string;
+  handlerResults: {
+    handlerName: string;
+    duration: number;
+    status: 'SUCCESS' | 'FAILED';
+    errorMessage?: string;
+  }[];
+}
+
+export interface OrchestrationStats {
+  totalEvents: number;
+  processedEvents: number;
+  failedEvents: number;
+  avgProcessingTime: number;
+  automationScore: number;
+  activeWorkflows: number;
+  completedWorkflows: number;
+  failedWorkflows: number;
+}
+
+// Business Process Automation Types
+export interface AutomationRule {
+  id: string;
+  name: string;
+  description?: string;
+  triggerEvent: string;
+  conditions: any[];
+  actions: any[];
+  isActive: boolean;
+  priority: number;
+  tenantId: string;
+}
+
+export interface BusinessProcessMetrics {
+  processName: string;
+  automationLevel: number; // 0-1 (0% - 100%)
+  avgProcessingTime: number;
+  errorRate: number;
+  costSavings: number;
+  humanInterventionRate: number;
+}
+
+// ==================== ML-PIPELINE & PREDICTIVE ANALYTICS TYPES ====================
+
+export interface MLModelItem {
+  id: string;
+  name: string;
+  version: string;
+  type: MLModelType;
+  framework: string;
+  algorithm: string;
+  description?: string | null;
+  configParams: any;
+  architecture?: any;
+  featureColumns: string[];
+  targetColumn?: string | null;
+  status: MLModelStatus;
+  accuracy?: number | null;
+  precision?: number | null;
+  recall?: number | null;
+  f1Score?: number | null;
+  mse?: number | null;
+  mae?: number | null;
+  r2Score?: number | null;
+  trainingDataSize?: number | null;
+  validationDataSize?: number | null;
+  modelPath?: string | null;
+  modelData?: any;
+  lastTrainingDate?: Date | null;
+  lastUsedDate?: Date | null;
+  usageCount: number;
+  isActive: boolean;
+  isProduction: boolean;
+  tenantId: string;
+  userId?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  trainingJobs?: MLTrainingJobItem[];
+  predictions?: MLPredictionItem[];
+  experiments?: MLExperimentItem[];
+  features?: MLFeatureItem[];
+  metrics?: MLModelMetricsItem[];
+}
+
+export interface MLTrainingJobItem {
+  id: string;
+  modelId: string;
+  jobName: string;
+  status: MLTrainingStatus;
+  startTime?: Date | null;
+  endTime?: Date | null;
+  duration?: number | null;
+  trainingConfig: any;
+  datasetPath?: string | null;
+  datasetSize?: number | null;
+  validationSplit?: number | null;
+  epochs?: number | null;
+  batchSize?: number | null;
+  learningRate?: number | null;
+  lossFunctionData?: any;
+  accuracyData?: any;
+  validationLoss?: number | null;
+  validationAccuracy?: number | null;
+  modelCheckpoints?: any;
+  logs?: string | null;
+  errorMessage?: string | null;
+  tenantId: string;
+  userId?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  model?: MLModelItem;
+}
+
+export interface MLPredictionItem {
+  id: string;
+  modelId: string;
+  predictionType: MLPredictionType;
+  inputData: any;
+  outputData: any;
+  confidence?: number | null;
+  probability?: any;
+  predictionDate: Date;
+  targetDate?: Date | null;
+  actualValue?: any;
+  accuracy?: number | null;
+  isCorrect?: boolean | null;
+  resourceType?: string | null;
+  resourceId?: string | null;
+  context?: any;
+  batchId?: string | null;
+  tenantId: string;
+  userId?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  model?: MLModelItem;
+}
+
+export interface MLAnomalyDetectionItem {
+  id: string;
+  anomalyType: MLAnomalyType;
+  dataSource: string;
+  inputData: any;
+  anomalyScore: number;
+  threshold: number;
+  isAnomaly: boolean;
+  severity: AnomalySeverity;
+  description: string;
+  explanation?: string | null;
+  recommendations?: any;
+  detectionMethod: string;
+  detectedAt: Date;
+  acknowledgedAt?: Date | null;
+  resolvedAt?: Date | null;
+  status: AnomalyStatus;
+  falsePositive?: boolean | null;
+  resourceType?: string | null;
+  resourceId?: string | null;
+  alertSent: boolean;
+  tenantId: string;
+  userId?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface MLFeatureItem {
+  id: string;
+  modelId: string;
+  name: string;
+  type: MLFeatureType;
+  description?: string | null;
+  dataType: string;
+  sourceColumn?: string | null;
+  transformation?: string | null;
+  importance?: number | null;
+  isActive: boolean;
+  statistics?: any;
+  categories: string[];
+  encoding?: any;
+  tenantId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  model?: MLModelItem;
+}
+
+export interface MLExperimentItem {
+  id: string;
+  name: string;
+  description?: string | null;
+  modelId?: string | null;
+  experimentType: MLExperimentType;
+  status: MLExperimentStatus;
+  startDate: Date;
+  endDate?: Date | null;
+  configuration: any;
+  variants: any;
+  metrics: any;
+  winnerVariant?: string | null;
+  confidence?: number | null;
+  significanceLevel?: number | null;
+  sampleSize?: number | null;
+  results?: any;
+  conclusions?: string | null;
+  isActive: boolean;
+  tenantId: string;
+  userId?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  model?: MLModelItem;
+}
+
+export interface MLDataPipelineItem {
+  id: string;
+  name: string;
+  description?: string | null;
+  pipelineType: MLPipelineType;
+  status: MLPipelineStatus;
+  sourceConfig: any;
+  steps: any;
+  schedule?: string | null;
+  lastRunAt?: Date | null;
+  nextRunAt?: Date | null;
+  successCount: number;
+  failureCount: number;
+  avgExecutionTime?: number | null;
+  outputDataPath?: string | null;
+  logs?: string | null;
+  errorMessage?: string | null;
+  isActive: boolean;
+  tenantId: string;
+  userId?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  executions?: MLPipelineExecutionItem[];
+}
+
+export interface MLPipelineExecutionItem {
+  id: string;
+  pipelineId: string;
+  executionId: string;
+  status: MLExecutionStatus;
+  startTime: Date;
+  endTime?: Date | null;
+  duration?: number | null;
+  inputData?: any;
+  outputData?: any;
+  processedRecords?: number | null;
+  errorRecords?: number | null;
+  stepResults?: any;
+  logs?: string | null;
+  errorMessage?: string | null;
+  retryCount: number;
+  tenantId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  pipeline?: MLDataPipelineItem;
+}
+
+export interface MLModelMetricsItem {
+  id: string;
+  modelId: string;
+  metricType: MLMetricType;
+  value: number;
+  datasetType: string;
+  evaluationDate: Date;
+  sampleSize?: number | null;
+  metadata?: any;
+  tenantId: string;
+  createdAt: Date;
+  model?: MLModelItem;
+}
+
+// ML Service Interfaces
+export interface MLModelConfig {
+  type: MLModelType;
+  algorithm: string;
+  hyperparameters: {
+    learningRate?: number;
+    epochs?: number;
+    batchSize?: number;
+    validationSplit?: number;
+    [key: string]: any;
+  };
+  features: MLFeatureConfig[];
+  target?: string;
+}
+
+export interface MLFeatureConfig {
+  name: string;
+  type: MLFeatureType;
+  transformation?: string;
+  encoding?: any;
+  categories?: string[];
+  statistics?: {
+    mean?: number;
+    std?: number;
+    min?: number;
+    max?: number;
+    [key: string]: any;
+  };
+}
+
+export interface MLTrainingData {
+  features: number[][];
+  target?: number[] | string[];
+  featureNames: string[];
+  targetName?: string;
+  sampleCount: number;
+}
+
+export interface MLPredictionResult {
+  prediction: any;
+  confidence?: number;
+  probability?: any;
+  explanation?: any;
+  modelUsed: string;
+  timestamp: Date;
+}
+
+export interface MLAnomalyResult {
+  isAnomaly: boolean;
+  anomalyScore: number;
+  threshold: number;
+  severity: AnomalySeverity;
+  explanation?: string;
+  recommendations?: string[];
+  timestamp: Date;
+}
+
+export interface MLExperimentConfig {
+  name: string;
+  type: MLExperimentType;
+  variants: {
+    id: string;
+    name: string;
+    config: any;
+  }[];
+  metrics: string[];
+  duration?: number;
+  sampleSize?: number;
+  significanceLevel?: number;
+}
+
+export interface MLModelPerformance {
+  accuracy?: number;
+  precision?: number;
+  recall?: number;
+  f1Score?: number;
+  mse?: number;
+  mae?: number;
+  r2Score?: number;
+  confusionMatrix?: number[][];
+  rocAuc?: number;
+  logLoss?: number;
+}
+
+export interface PredictiveAnalyticsConfig {
+  forecastHorizon: number; // Days to forecast
+  confidence: number; // Confidence level (0-1)
+  includeSeasonality: boolean;
+  includeHolidays: boolean;
+  features: string[];
+}
+
+export interface SalesForecastResult {
+  predictions: {
+    date: Date;
+    value: number;
+    confidence: number;
+    lowerBound: number;
+    upperBound: number;
+  }[];
+  accuracy: number;
+  modelMetrics: MLModelPerformance;
+  factors: {
+    feature: string;
+    importance: number;
+  }[];
+}
+
+export interface CashFlowPrediction {
+  predictions: {
+    date: Date;
+    income: number;
+    expenses: number;
+    netFlow: number;
+    cumulativeFlow: number;
+    confidence: number;
+  }[];
+  riskAssessment: {
+    cashoutRisk: number;
+    riskDates: Date[];
+    recommendations: string[];
+  };
+  accuracy: number;
+}
+
+export interface ProjectTimelinePrediction {
+  predictedCompletionDate: Date;
+  confidence: number;
+  delayRisk: number;
+  criticalTasks: {
+    taskId: string;
+    name: string;
+    delayRisk: number;
+    impact: number;
+  }[];
+  recommendations: string[];
+  accuracy: number;
+}
+
+export interface CustomerBehaviorAnalysis {
+  churnProbability: number;
+  valueSegment: string;
+  nextPurchasePrediction: {
+    date: Date;
+    amount: number;
+    confidence: number;
+  };
+  recommendedActions: string[];
+  factors: {
+    feature: string;
+    impact: number;
+  }[];
+}
+
+export interface DataQualityMetrics {
+  completeness: number;
+  accuracy: number;
+  consistency: number;
+  timeliness: number;
+  validity: number;
+  uniqueness: number;
+  overall: number;
+  issues: {
+    type: string;
+    description: string;
+    severity: string;
+    count: number;
+  }[];
+}
+
+export interface MLDashboardStats {
+  totalModels: number;
+  activeModels: number;
+  trainingJobs: number;
+  predictions: number;
+  anomaliesDetected: number;
+  avgAccuracy: number;
+  pipelineRuns: number;
+  experiments: number;
+}
+
+export interface MLInsight {
+  id: string;
+  type: 'TREND' | 'ANOMALY' | 'PREDICTION' | 'RECOMMENDATION';
+  title: string;
+  description: string;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  confidence: number;
+  data: any;
+  actions: string[];
+  timestamp: Date;
+  module: string;
+}
+
+export interface AutoMLConfig {
+  task: 'CLASSIFICATION' | 'REGRESSION' | 'TIME_SERIES' | 'CLUSTERING';
+  targetColumn: string;
+  features: string[];
+  trainTestSplit: number;
+  maxModels: number;
+  timeLimit: number; // Minutes
+  optimizationMetric: string;
+}
+
+// ==================== SELF-LEARNING SYSTEM TYPES (SPRINT 1.5) ====================
+
+// Reinforcement Learning Types
+export interface RLAgentConfig {
+  agentType: RLAgentType;
+  environment: string;
+  hyperparameters: {
+    learningRate: number;
+    explorationRate: number;
+    discountFactor: number;
+    [key: string]: any;
+  };
+  policy?: Record<string, any>;
+}
+
+export interface RLState {
+  data: Record<string, any>;
+  hash: string;
+  features: number[];
+  isTerminal: boolean;
+}
+
+export interface RLAction {
+  type: string;
+  parameters: Record<string, any>;
+  qValue?: number;
+  probability?: number;
+}
+
+export interface RLReward {
+  value: number;
+  type: RLRewardType;
+  source: string;
+  context?: Record<string, any>;
+}
+
+export interface RLEpisodeResult {
+  id: string;
+  episodeNumber: number;
+  totalSteps: number;
+  totalReward: number;
+  avgReward: number;
+  success: boolean;
+  duration: number;
+}
+
+export interface RLDecisionRequest {
+  agentId: string;
+  state: RLState;
+  availableActions: RLAction[];
+  context?: Record<string, any>;
+}
+
+export interface RLDecisionResponse {
+  action: RLAction;
+  confidence: number;
+  reasoning?: string;
+  expectedReward: number;
+  explorationAction: boolean;
+}
+
+// User Feedback Types
+export interface UserFeedbackData {
+  userId: string;
+  targetType: string;
+  targetId: string;
+  feedbackType: UserFeedbackType;
+  rating?: number;
+  sentiment?: FeedbackSentiment;
+  comment?: string;
+  context?: Record<string, any>;
+  weight?: number;
+}
+
+export interface UserPreferenceData {
+  userId: string;
+  preferenceType: string;
+  key: string;
+  value: any;
+  source: PreferenceSource;
+  confidence: number;
+}
+
+export interface ImplicitFeedbackData {
+  userId?: string;
+  sessionId?: string;
+  action: string;
+  targetType: string;
+  targetId?: string;
+  value?: number;
+  context: Record<string, any>;
+  timestamp: Date;
+}
+
+// Self-Optimization Types
+export interface HyperparameterTuningConfig {
+  modelId?: string;
+  agentId?: string;
+  tuningMethod: TuningMethod;
+  searchSpace: Record<string, any>;
+  objective: string;
+  maxIterations: number;
+  constraints?: Record<string, any>;
+}
+
+export interface HyperparameterTuningResult {
+  bestParams: Record<string, any>;
+  bestScore: number;
+  iterations: number;
+  convergenceHistory: number[];
+  searchHistory: Array<{
+    params: Record<string, any>;
+    score: number;
+  }>;
+}
+
+export interface ConceptDriftDetection {
+  modelId?: string;
+  agentId?: string;
+  driftType: DriftType;
+  severity: DriftSeverity;
+  confidence: number;
+  driftScore: number;
+  baseline: Record<string, any>;
+  current: Record<string, any>;
+  recommendation: string;
+  detectedAt: Date;
+}
+
+export interface ModelPerformanceMetric {
+  modelId?: string;
+  agentId?: string;
+  metricName: string;
+  metricValue: number;
+  baseline?: number;
+  improvement?: number;
+  dataWindow: string;
+  timestamp: Date;
+  environment?: string;
+}
+
+// Continuous Learning Types
+export interface OnlineLearningConfig {
+  modelId?: string;
+  agentId?: string;
+  sessionType: OnlineLearningType;
+  learningRate: number;
+  adaptationRate: number;
+  batchSize: number;
+  updateFrequency: number;
+  memorySize?: number;
+}
+
+export interface OnlineLearningUpdate {
+  sessionId: string;
+  newData: any[];
+  labels?: any[];
+  feedback?: UserFeedbackData[];
+  performanceMetrics: Record<string, number>;
+  adaptations: Record<string, any>;
+}
+
+export interface TransferLearningConfig {
+  sourceModelId?: string;
+  targetModelId?: string;
+  sourceAgentId?: string;
+  targetAgentId?: string;
+  transferType: TransferType;
+  transferMethod: string;
+  similarity?: number;
+  layersToTransfer?: string[];
+  layersToFreeze?: string[];
+}
+
+export interface TransferLearningResult {
+  transferredParams: Record<string, any>;
+  performanceImprovement: number;
+  transferEfficiency: number;
+  adaptationTime: number;
+  finalPerformance: Record<string, number>;
+}
+
+export interface AdaptiveLearningRule {
+  modelId?: string;
+  agentId?: string;
+  adaptationType: AdaptationType;
+  trigger: string;
+  threshold: number;
+  adaptationFunction: string;
+  parameters: Record<string, any>;
+}
+
+// AutoML Types for Self-Learning
+export interface AutoMLExperimentConfig {
+  name: string;
+  experimentType: AutoMLType;
+  dataset: Record<string, any>;
+  objective: string;
+  constraints?: Record<string, any>;
+  searchSpace: Record<string, any>;
+  maxTrials: number;
+  timeLimit?: number;
+}
+
+export interface AutoMLResult {
+  bestModel: Record<string, any>;
+  bestScore: number;
+  totalTrials: number;
+  searchTime: number;
+  leaderboard: Array<{
+    modelConfig: Record<string, any>;
+    score: number;
+    rank: number;
+  }>;
+  insights: string[];
+}
+
+// Dashboard and Analytics Types
+export interface SelfLearningMetrics {
+  autonomyScore: number;
+  learningEfficiency: number;
+  adaptationRate: number;
+  userSatisfaction: number;
+  performanceImprovement: number;
+  driftDetectionAccuracy: number;
+  reinforcementLearningSuccess: number;
+  onlineLearningMetrics: {
+    sessionsActive: number;
+    samplesProcessed: number;
+    avgLoss: number;
+    adaptationsPerformed: number;
+  };
+  feedbackMetrics: {
+    totalFeedback: number;
+    positiveRatio: number;
+    feedbackProcessingRate: number;
+    implicitFeedbackCapture: number;
+  };
+}
+
+export interface SelfLearningDashboardData {
+  metrics: SelfLearningMetrics;
+  activeAgents: RLAgentSummary[];
+  recentFeedback: UserFeedbackSummary[];
+  performanceTrends: PerformanceTrend[];
+  driftAlerts: ConceptDriftAlert[];
+  optimizationSuggestions: OptimizationSuggestion[];
+}
+
+export interface RLAgentSummary {
+  id: string;
+  name: string;
+  agentType: RLAgentType;
+  environment: string;
+  totalEpisodes: number;
+  avgReward: number;
+  successRate: number;
+  lastTraining?: Date;
+  isActive: boolean;
+}
+
+export interface UserFeedbackSummary {
+  id: string;
+  userId: string;
+  targetType: string;
+  feedbackType: UserFeedbackType;
+  rating?: number;
+  sentiment?: FeedbackSentiment;
+  processed: boolean;
+  createdAt: Date;
+}
+
+export interface PerformanceTrend {
+  metricName: string;
+  timeline: Array<{
+    timestamp: Date;
+    value: number;
+    baseline?: number;
+  }>;
+  trend: 'improving' | 'declining' | 'stable';
+  changePercentage: number;
+}
+
+export interface ConceptDriftAlert {
+  id: string;
+  modelId?: string;
+  agentId?: string;
+  severity: DriftSeverity;
+  driftType: DriftType;
+  confidence: number;
+  detectedAt: Date;
+  status: DriftStatus;
+  recommendation: string;
+}
+
+export interface OptimizationSuggestion {
+  type: 'hyperparameter' | 'architecture' | 'data' | 'feature';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  description: string;
+  expectedImprovement: number;
+  estimatedEffort: string;
+  confidence: number;
+}
+
+// Enums for TypeScript
+export enum RLAgentType {
+  Q_LEARNING = 'Q_LEARNING',
+  DEEP_Q_NETWORK = 'DEEP_Q_NETWORK',
+  POLICY_GRADIENT = 'POLICY_GRADIENT',
+  ACTOR_CRITIC = 'ACTOR_CRITIC',
+  MULTI_ARMED_BANDIT = 'MULTI_ARMED_BANDIT',
+  THOMPSON_SAMPLING = 'THOMPSON_SAMPLING',
+  UCB = 'UCB',
+  SARSA = 'SARSA',
+  TEMPORAL_DIFFERENCE = 'TEMPORAL_DIFFERENCE'
+}
+
+export enum RLRewardType {
+  IMMEDIATE = 'IMMEDIATE',
+  DELAYED = 'DELAYED',
+  SPARSE = 'SPARSE',
+  SHAPED = 'SHAPED',
+  INTRINSIC = 'INTRINSIC',
+  EXTRINSIC = 'EXTRINSIC'
+}
+
+export enum UserFeedbackType {
+  EXPLICIT = 'EXPLICIT',
+  IMPLICIT = 'IMPLICIT',
+  RATING = 'RATING',
+  PREFERENCE = 'PREFERENCE',
+  CORRECTION = 'CORRECTION',
+  APPROVAL = 'APPROVAL',
+  DISAPPROVAL = 'DISAPPROVAL'
+}
+
+export enum FeedbackSentiment {
+  POSITIVE = 'POSITIVE',
+  NEGATIVE = 'NEGATIVE',
+  NEUTRAL = 'NEUTRAL',
+  MIXED = 'MIXED'
+}
+
+export enum PreferenceSource {
+  EXPLICIT = 'EXPLICIT',
+  IMPLICIT = 'IMPLICIT',
+  LEARNED = 'LEARNED',
+  INHERITED = 'INHERITED',
+  DEFAULT = 'DEFAULT'
+}
+
+export enum TuningMethod {
+  GRID_SEARCH = 'GRID_SEARCH',
+  RANDOM_SEARCH = 'RANDOM_SEARCH',
+  BAYESIAN_OPTIMIZATION = 'BAYESIAN_OPTIMIZATION',
+  GENETIC_ALGORITHM = 'GENETIC_ALGORITHM',
+  SIMULATED_ANNEALING = 'SIMULATED_ANNEALING',
+  PARTICLE_SWARM = 'PARTICLE_SWARM',
+  HYPERBAND = 'HYPERBAND',
+  OPTUNA = 'OPTUNA'
+}
+
+export enum DriftType {
+  SUDDEN = 'SUDDEN',
+  GRADUAL = 'GRADUAL',
+  RECURRING = 'RECURRING',
+  INCREMENTAL = 'INCREMENTAL',
+  CYCLICAL = 'CYCLICAL'
+}
+
+export enum DriftSeverity {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+  CRITICAL = 'CRITICAL'
+}
+
+export enum DriftStatus {
+  DETECTED = 'DETECTED',
+  ACKNOWLEDGED = 'ACKNOWLEDGED',
+  ADAPTING = 'ADAPTING',
+  ADAPTED = 'ADAPTED',
+  IGNORED = 'IGNORED',
+  FALSE_POSITIVE = 'FALSE_POSITIVE'
+}
+
+export enum AutoMLType {
+  NEURAL_ARCHITECTURE_SEARCH = 'NEURAL_ARCHITECTURE_SEARCH',
+  AUTOML_PIPELINE = 'AUTOML_PIPELINE',
+  FEATURE_SELECTION = 'FEATURE_SELECTION',
+  HYPERPARAMETER_OPTIMIZATION = 'HYPERPARAMETER_OPTIMIZATION',
+  MODEL_SELECTION = 'MODEL_SELECTION',
+  ENSEMBLE_OPTIMIZATION = 'ENSEMBLE_OPTIMIZATION'
+}
+
+export enum OnlineLearningType {
+  INCREMENTAL = 'INCREMENTAL',
+  BATCH_INCREMENTAL = 'BATCH_INCREMENTAL',
+  STREAMING = 'STREAMING',
+  MINI_BATCH = 'MINI_BATCH',
+  STOCHASTIC = 'STOCHASTIC'
+}
+
+export enum TransferType {
+  WEIGHTS = 'WEIGHTS',
+  FEATURES = 'FEATURES',
+  KNOWLEDGE = 'KNOWLEDGE',
+  POLICY = 'POLICY',
+  ARCHITECTURE = 'ARCHITECTURE',
+  PARAMETERS = 'PARAMETERS'
+}
+
+export enum AdaptationType {
+  LEARNING_RATE = 'LEARNING_RATE',
+  ARCHITECTURE = 'ARCHITECTURE',
+  THRESHOLD = 'THRESHOLD',
+  STRATEGY = 'STRATEGY',
+  HYPERPARAMETER = 'HYPERPARAMETER',
+  POLICY = 'POLICY'
 }

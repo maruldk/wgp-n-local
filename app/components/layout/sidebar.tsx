@@ -25,6 +25,8 @@ import {
   Receipt,
   Target,
   Calendar,
+  Zap,
+  Brain,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -53,6 +55,16 @@ const mainNavItems = [
     title: 'KI-Assistent',
     href: '/ai-chat',
     icon: Bot,
+  },
+  {
+    title: 'Event Orchestration',
+    href: '/event-orchestration',
+    icon: Zap,
+  },
+  {
+    title: 'ML Analytics',
+    href: '/ml-analytics',
+    icon: Brain,
   },
 ];
 
@@ -94,6 +106,29 @@ const financeNavItems = [
     title: 'Finanzberichte',
     href: '/finance/reports',
     icon: PieChart,
+  },
+];
+
+const aiNavItems = [
+  {
+    title: 'ML Analytics',
+    href: '/ml-analytics',
+    icon: BarChart3,
+  },
+  {
+    title: 'Self-Learning',
+    href: '/self-learning',
+    icon: Brain,
+  },
+  {
+    title: 'AI Chat',
+    href: '/ai-chat',
+    icon: Bot,
+  },
+  {
+    title: 'Event Orchestration',
+    href: '/event-orchestration',
+    icon: Zap,
   },
 ];
 
@@ -205,6 +240,34 @@ export function Sidebar({ className }: SidebarProps) {
             </h3>
           )}
           {analyticsNavItems.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+            const Icon = item.icon;
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground',
+                  isActive && 'bg-accent text-accent-foreground',
+                  isCollapsed && 'justify-center px-2'
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {!isCollapsed && <span>{item.title}</span>}
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* AI Section */}
+        <div className="space-y-2 border-t pt-4">
+          {!isCollapsed && (
+            <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              weAI Systems
+            </h3>
+          )}
+          {aiNavItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
             const Icon = item.icon;
 
