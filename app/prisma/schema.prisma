@@ -82,6 +82,38 @@ model User {
   aiAuditTrails    AIAuditTrail[]
   aiFeedback       AIFeedback[]
   aiWorkflowExecutions AIWorkflowExecution[]
+  
+  // EVENT-DRIVEN ORCHESTRATION relations
+  realTimeNotifications RealTimeNotification[]
+  
+  // ML-PIPELINE relations
+  mlModels              MLModel[]
+  mlTrainingJobs        MLTrainingJob[]
+  mlPredictions         MLPrediction[]
+  mlAnomalyDetections   MLAnomalyDetection[]
+  mlExperiments         MLExperiment[]
+  mlDataPipelines       MLDataPipeline[]
+  
+  // SELF-LEARNING SYSTEM relations
+  rlAgents             RLAgent[]
+  userFeedback         UserFeedback[]
+  userPreferences      UserPreference[]
+  implicitFeedback     ImplicitFeedback[]
+  hyperparameterTuning HyperparameterTuning[]
+  automlExperiments    AutoMLExperiment[]
+  transferLearning     TransferLearning[]
+
+  // HYBRID SPRINT 2.1 relations
+  twoFactorAuth        TwoFactorAuth?
+  securityAuditLogs    SecurityAuditLog[]
+  apiRateLimits        ApiRateLimit[]
+  dashboardTemplates   DashboardTemplate[]
+  dataImportExports    DataImportExport[]
+  etlPipelines         EtlPipeline[]
+  scheduledReports     ScheduledReport[]
+  webhooks             Webhook[]
+  dataConnectors       DataConnector[]
+  customWidgets        CustomWidget[]
 
   @@map("users")
 }
@@ -137,6 +169,62 @@ model Tenant {
   aiFeedback    AIFeedback[]
   aiModelMetrics AIModelMetrics[]
   aiWorkflowExecutions AIWorkflowExecution[]
+  
+  // EVENT-DRIVEN ORCHESTRATION relations
+  eventBus              EventBus[]
+  eventHandlers         EventHandler[]
+  eventCorrelations     EventCorrelation[]
+  eventSubscriptions    EventSubscription[]
+  workflowDefinitions   WorkflowDefinition[]
+  workflowExecutions    WorkflowExecution[]
+  workflowSteps         WorkflowStep[]
+  realTimeNotifications RealTimeNotification[]
+  aiOrchestrationMetrics AIOrchestrationMetrics[]
+  
+  // ML-PIPELINE relations
+  mlModels              MLModel[]
+  mlTrainingJobs        MLTrainingJob[]
+  mlPredictions         MLPrediction[]
+  mlAnomalyDetections   MLAnomalyDetection[]
+  mlFeatures            MLFeature[]
+  mlExperiments         MLExperiment[]
+  mlDataPipelines       MLDataPipeline[]
+  mlPipelineExecutions  MLPipelineExecution[]
+  mlModelMetrics        MLModelMetrics[]
+  
+  // SELF-LEARNING SYSTEM relations
+  rlAgents              RLAgent[]
+  rlEpisodes            RLEpisode[]
+  rlActions             RLAction[]
+  rlStates              RLState[]
+  rlRewards             RLReward[]
+  userFeedback          UserFeedback[]
+  userPreferences       UserPreference[]
+  implicitFeedback      ImplicitFeedback[]
+  hyperparameterTuning  HyperparameterTuning[]
+  modelPerformance      ModelPerformance[]
+  conceptDrift          ConceptDrift[]
+  automlExperiments     AutoMLExperiment[]
+  onlineLearningSessions OnlineLearningSession[]
+  transferLearning      TransferLearning[]
+  adaptiveLearning      AdaptiveLearning[]
+
+  // HYBRID SPRINT 2.1 relations
+  oauthProviders        OAuthProvider[]
+  securityAuditLogs     SecurityAuditLog[]
+  apiRateLimits         ApiRateLimit[]
+  performanceMetrics    PerformanceMetric[]
+  dashboardTemplates    DashboardTemplate[]
+  dataImportExports     DataImportExport[]
+  etlPipelines          EtlPipeline[]
+  etlExecutions         EtlExecution[]
+  scheduledReports      ScheduledReport[]
+  reportExecutions      ReportExecution[]
+  webhooks              Webhook[]
+  webhookDeliveries     WebhookDelivery[]
+  dataConnectors        DataConnector[]
+  connectorSyncs        ConnectorSync[]
+  customWidgets         CustomWidget[]
 
   @@map("tenants")
 }
@@ -265,8 +353,9 @@ model Report {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
-  user   User   @relation(fields: [userId], references: [id])
+  tenant          Tenant            @relation(fields: [tenantId], references: [id])
+  user            User              @relation(fields: [userId], references: [id])
+  scheduledReports ScheduledReport[]
 
   @@map("reports")
 }
@@ -783,4 +872,1823 @@ enum WorkflowStatus {
   COMPLETED
   FAILED
   CANCELLED
+}
+
+// ==================== HYBRID SPRINT 2.1: ADVANCED SECURITY & ANALYTICS MODELS ====================
+
+// OAuth Provider Management
+model OAuthProvider {
+  id           String   @id @default(cuid())
+  name         String   // GOOGLE, MICROSOFT, GITHUB
+  clientId     String
+  clientSecret String
+  scopes       String[] // Requested OAuth scopes
+  isActive     Boolean  @default(true)
+  tenantId     String?  // Optional: tenant-specific OAuth apps
+  metadata     Json?    // Additional provider-specific config
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant       Tenant?  @relation(fields: [tenantId], references: [id])
+  
+  @@unique([name, tenantId])
+  @@map("oauth_providers")
+}
+
+// Two-Factor Authentication
+model TwoFactorAuth {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  secret       String   // Base32 encoded secret
+  isEnabled    Boolean  @default(false)
+  backupCodes  String[] // Recovery codes
+  lastUsed     DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("two_factor_auth")
+}
+
+// Enhanced Audit Logging
+model SecurityAuditLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  sessionId    String?
+  action       SecurityAction
+  resource     String
+  resourceId   String?
+  ipAddress    String?
+  userAgent    String?
+  location     Json?    // Geolocation data
+  riskScore    Float?   // Security risk assessment (0-1)
+  details      Json?
+  tenantId     String?
+  createdAt    DateTime @default(now())
+
+  user         User?    @relation(fields: [userId], references: [id])
+  tenant       Tenant?  @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, action, createdAt])
+  @@index([userId, action])
+  @@index([riskScore])
+  @@map("security_audit_logs")
+}
+
+// API Rate Limiting
+model ApiRateLimit {
+  id           String   @id @default(cuid())
+  userId       String?
+  ipAddress    String?
+  endpoint     String
+  requestCount Int      @default(0)
+  windowStart  DateTime @default(now())
+  windowEnd    DateTime
+  isBlocked    Boolean  @default(false)
+  tenantId     String?
+
+  user         User?    @relation(fields: [userId], references: [id])
+  tenant       Tenant?  @relation(fields: [tenantId], references: [id])
+
+  @@unique([userId, endpoint, windowStart])
+  @@unique([ipAddress, endpoint, windowStart])
+  @@map("api_rate_limits")
+}
+
+// Performance Monitoring
+model PerformanceMetric {
+  id           String   @id @default(cuid())
+  metricType   PerformanceMetricType
+  endpoint     String?
+  responseTime Float    // Response time in milliseconds
+  cpuUsage     Float?   // CPU usage percentage
+  memoryUsage  Float?   // Memory usage in MB
+  dbQueryTime  Float?   // Database query time in ms
+  errorRate    Float?   // Error rate percentage
+  throughput   Float?   // Requests per second
+  timestamp    DateTime @default(now())
+  tenantId     String?
+
+  tenant       Tenant?  @relation(fields: [tenantId], references: [id])
+
+  @@index([metricType, timestamp])
+  @@index([tenantId, timestamp])
+  @@map("performance_metrics")
+}
+
+// Advanced Dashboard Builder
+model DashboardTemplate {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  category     String   // SALES, FINANCE, PROJECT, ANALYTICS, EXECUTIVE
+  layout       Json     // Complete dashboard layout definition
+  widgets      Json     // Widget configurations
+  isPublic     Boolean  @default(false)
+  isOfficial   Boolean  @default(false) // weGROUP official templates
+  rating       Float    @default(0)
+  downloads    Int      @default(0)
+  tenantId     String?
+  userId       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant       Tenant?  @relation(fields: [tenantId], references: [id])
+  user         User?    @relation(fields: [userId], references: [id])
+
+  @@index([category, rating])
+  @@map("dashboard_templates")
+}
+
+// Data Import/Export Management
+model DataImportExport {
+  id           String             @id @default(cuid())
+  name         String
+  type         ImportExportType   // IMPORT, EXPORT
+  format       DataFormat         // CSV, JSON, EXCEL, PDF
+  source       String?            // Source file path or URL
+  destination  String?            // Destination file path
+  mapping      Json?              // Field mapping configuration
+  filters      Json?              // Data filters
+  status       ImportExportStatus @default(PENDING)
+  recordsTotal Int?               // Total records processed
+  recordsSuccess Int?             // Successfully processed records
+  recordsError Int?               // Failed records
+  errorLog     String?            // Error details
+  schedule     Json?              // Scheduled execution config
+  lastRun      DateTime?
+  nextRun      DateTime?
+  tenantId     String
+  userId       String
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  tenant       Tenant             @relation(fields: [tenantId], references: [id])
+  user         User               @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, type, status])
+  @@map("data_import_exports")
+}
+
+// ETL Pipeline Management
+model EtlPipeline {
+  id           String           @id @default(cuid())
+  name         String
+  description  String?
+  sourceConfig Json             // Source configuration (DB, API, File)
+  transformConfig Json          // Data transformation rules
+  targetConfig Json             // Target configuration
+  schedule     Json?            // Cron-like schedule
+  isActive     Boolean          @default(true)
+  lastRun      DateTime?
+  nextRun      DateTime?
+  tenantId     String
+  userId       String
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  tenant       Tenant           @relation(fields: [tenantId], references: [id])
+  user         User             @relation(fields: [userId], references: [id])
+  executions   EtlExecution[]
+
+  @@index([tenantId, isActive])
+  @@map("etl_pipelines")
+}
+
+model EtlExecution {
+  id           String           @id @default(cuid())
+  pipelineId   String
+  status       ETLExecutionStatus @default(RUNNING)
+  startTime    DateTime         @default(now())
+  endTime      DateTime?
+  duration     Int?             // Duration in milliseconds
+  recordsProcessed Int?         // Number of records processed
+  recordsSuccess Int?           // Successfully processed
+  recordsError   Int?           // Failed records
+  errorLog     String?
+  metrics      Json?            // Execution metrics
+  tenantId     String
+
+  pipeline     EtlPipeline      @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  tenant       Tenant           @relation(fields: [tenantId], references: [id])
+
+  @@index([pipelineId, status])
+  @@map("etl_executions")
+}
+
+// Scheduled Reports
+model ScheduledReport {
+  id           String           @id @default(cuid())
+  reportId     String
+  name         String
+  schedule     Json             // Cron expression and timezone
+  recipients   String[]         // Email addresses
+  format       ReportFormat     // PDF, EXCEL, CSV
+  parameters   Json?            // Report parameters
+  isActive     Boolean          @default(true)
+  lastRun      DateTime?
+  nextRun      DateTime?
+  tenantId     String
+  userId       String
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  report       Report           @relation(fields: [reportId], references: [id])
+  tenant       Tenant           @relation(fields: [tenantId], references: [id])
+  user         User             @relation(fields: [userId], references: [id])
+  executions   ReportExecution[]
+
+  @@index([tenantId, isActive, nextRun])
+  @@map("scheduled_reports")
+}
+
+model ReportExecution {
+  id               String           @id @default(cuid())
+  scheduledReportId String
+  status           ReportExecutionStatus @default(PENDING)
+  startTime        DateTime         @default(now())
+  endTime          DateTime?
+  filePath         String?          // Generated report file path
+  fileSize         Int?             // File size in bytes
+  errorMessage     String?
+  tenantId         String
+
+  scheduledReport  ScheduledReport  @relation(fields: [scheduledReportId], references: [id], onDelete: Cascade)
+  tenant           Tenant           @relation(fields: [tenantId], references: [id])
+
+  @@index([scheduledReportId, status])
+  @@map("report_executions")
+}
+
+// Webhook Integration
+model Webhook {
+  id           String           @id @default(cuid())
+  name         String
+  url          String
+  events       WebhookEvent[]   // Events to trigger webhook
+  headers      Json?            // Custom headers
+  secret       String?          // Webhook secret for verification
+  isActive     Boolean          @default(true)
+  retryPolicy  Json?            // Retry configuration
+  lastTriggered DateTime?
+  tenantId     String
+  userId       String
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  tenant       Tenant           @relation(fields: [tenantId], references: [id])
+  user         User             @relation(fields: [userId], references: [id])
+  deliveries   WebhookDelivery[]
+
+  @@index([tenantId, isActive])
+  @@map("webhooks")
+}
+
+model WebhookDelivery {
+  id           String               @id @default(cuid())
+  webhookId    String
+  event        WebhookEvent
+  payload      Json
+  httpStatus   Int?
+  responseBody String?
+  responseTime Int?                 // Response time in milliseconds
+  status       WebhookDeliveryStatus @default(PENDING)
+  attempts     Int                  @default(0)
+  maxAttempts  Int                  @default(3)
+  nextRetry    DateTime?
+  tenantId     String
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  webhook      Webhook              @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  tenant       Tenant               @relation(fields: [tenantId], references: [id])
+
+  @@index([webhookId, status])
+  @@index([status, nextRetry])
+  @@map("webhook_deliveries")
+}
+
+// Third-party Data Connectors
+model DataConnector {
+  id           String               @id @default(cuid())
+  name         String
+  type         ConnectorType        // SALESFORCE, HUBSPOT, GOOGLE_ANALYTICS, STRIPE, etc.
+  config       Json                 // Connector-specific configuration
+  credentials  Json                 // Encrypted credentials
+  isActive     Boolean              @default(true)
+  lastSync     DateTime?
+  syncInterval Int?                 // Sync interval in minutes
+  tenantId     String
+  userId       String
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  tenant       Tenant               @relation(fields: [tenantId], references: [id])
+  user         User                 @relation(fields: [userId], references: [id])
+  syncs        ConnectorSync[]
+
+  @@index([tenantId, type, isActive])
+  @@map("data_connectors")
+}
+
+model ConnectorSync {
+  id           String               @id @default(cuid())
+  connectorId  String
+  status       ConnectorSyncStatus  @default(RUNNING)
+  startTime    DateTime             @default(now())
+  endTime      DateTime?
+  recordsSync  Int?
+  errorMessage String?
+  tenantId     String
+
+  connector    DataConnector        @relation(fields: [connectorId], references: [id], onDelete: Cascade)
+  tenant       Tenant               @relation(fields: [tenantId], references: [id])
+
+  @@index([connectorId, status])
+  @@map("connector_syncs")
+}
+
+// Advanced Widget Types for Analytics
+model CustomWidget {
+  id           String           @id @default(cuid())
+  name         String
+  description  String?
+  category     String           // CHART, METRIC, TABLE, MAP, CUSTOM
+  component    String           // React component name
+  config       Json             // Widget configuration schema
+  dataSource   Json             // Data source configuration
+  isPublic     Boolean          @default(false)
+  rating       Float            @default(0)
+  downloads    Int              @default(0)
+  tenantId     String?
+  userId       String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  tenant       Tenant?          @relation(fields: [tenantId], references: [id])
+  user         User?            @relation(fields: [userId], references: [id])
+
+  @@index([category, rating])
+  @@map("custom_widgets")
+}
+
+// ==================== ENUMS FOR NEW FEATURES ====================
+
+enum SecurityAction {
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  LOGOUT
+  PASSWORD_CHANGE
+  PASSWORD_RESET
+  TWO_FACTOR_ENABLE
+  TWO_FACTOR_DISABLE
+  TWO_FACTOR_SUCCESS
+  TWO_FACTOR_FAILED
+  OAUTH_LOGIN
+  OAUTH_FAILED
+  PERMISSION_DENIED
+  DATA_EXPORT
+  DATA_IMPORT
+  ADMIN_ACTION
+  SUSPICIOUS_ACTIVITY
+}
+
+enum PerformanceMetricType {
+  API_RESPONSE_TIME
+  DATABASE_QUERY_TIME
+  CPU_USAGE
+  MEMORY_USAGE
+  DISK_USAGE
+  NETWORK_LATENCY
+  ERROR_RATE
+  THROUGHPUT
+  CONCURRENT_USERS
+}
+
+enum ImportExportType {
+  IMPORT
+  EXPORT
+}
+
+enum DataFormat {
+  CSV
+  JSON
+  EXCEL
+  PDF
+  XML
+  PARQUET
+}
+
+enum ImportExportStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ETLExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ReportFormat {
+  PDF
+  EXCEL
+  CSV
+  JSON
+}
+
+enum ReportExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum WebhookEvent {
+  USER_CREATED
+  USER_UPDATED
+  USER_DELETED
+  PROJECT_CREATED
+  PROJECT_UPDATED
+  PROJECT_COMPLETED
+  TASK_CREATED
+  TASK_UPDATED
+  TASK_COMPLETED
+  INVOICE_CREATED
+  INVOICE_PAID
+  PAYMENT_RECEIVED
+  REPORT_GENERATED
+  ANOMALY_DETECTED
+  THRESHOLD_EXCEEDED
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  RETRYING
+}
+
+enum ConnectorType {
+  SALESFORCE
+  HUBSPOT
+  GOOGLE_ANALYTICS
+  GOOGLE_SHEETS
+  STRIPE
+  SHOPIFY
+  MAILCHIMP
+  SLACK
+  MICROSOFT_365
+  DROPBOX
+  AMAZON_S3
+  POSTGRESQL
+  MYSQL
+  MONGODB
+  REST_API
+  GRAPHQL_API
+}
+
+enum ConnectorSyncStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+// ==================== ML-PIPELINE & PREDICTIVE ANALYTICS MODELS ====================
+
+model MLModel {
+  id              String          @id @default(cuid())
+  name            String          // Model name (e.g., "Sales Forecasting", "Anomaly Detection")
+  version         String          @default("1.0")
+  type            MLModelType     // REGRESSION, CLASSIFICATION, CLUSTERING, TIME_SERIES, NEURAL_NETWORK
+  framework       String          // TENSORFLOW_JS, SCIKIT_LEARN, CUSTOM
+  algorithm       String          // LINEAR_REGRESSION, RANDOM_FOREST, LSTM, etc.
+  description     String?
+  configParams    Json            // Model hyperparameters and configuration
+  architecture    Json?           // Model architecture (for neural networks)
+  featureColumns  String[]        // Input feature column names
+  targetColumn    String?         // Target column name (for supervised learning)
+  status          MLModelStatus   @default(TRAINING)
+  accuracy        Float?          // Model accuracy (0-1)
+  precision       Float?          // Precision metric
+  recall          Float?          // Recall metric
+  f1Score         Float?          // F1 score
+  mse             Float?          // Mean Squared Error (for regression)
+  mae             Float?          // Mean Absolute Error
+  r2Score         Float?          // R-squared score
+  trainingDataSize Int?           // Number of training samples
+  validationDataSize Int?         // Number of validation samples
+  modelPath       String?         // Path to saved model file
+  modelData       Json?           // Serialized model data (for small models)
+  lastTrainingDate DateTime?      // When model was last trained
+  lastUsedDate    DateTime?       // When model was last used for prediction
+  usageCount      Int             @default(0)
+  isActive        Boolean         @default(true)
+  isProduction    Boolean         @default(false)
+  tenantId        String
+  userId          String?         // User who created/trained the model
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  tenant          Tenant          @relation(fields: [tenantId], references: [id])
+  user            User?           @relation(fields: [userId], references: [id])
+  trainingJobs    MLTrainingJob[]
+  predictions     MLPrediction[]
+  experiments     MLExperiment[]
+  features        MLFeature[]
+  metrics         MLModelMetrics[]
+  
+  // SELF-LEARNING SYSTEM relations
+  hyperparameterTuning  HyperparameterTuning[]
+  modelPerformance      ModelPerformance[]
+  conceptDrift          ConceptDrift[]
+  onlineLearningSessions OnlineLearningSession[]
+  sourceTransfers       TransferLearning[] @relation("SourceModel")
+  targetTransfers       TransferLearning[] @relation("TargetModel")
+  adaptiveLearning      AdaptiveLearning[]
+
+  @@unique([name, version, tenantId])
+  @@index([tenantId, type, status])
+  @@index([isActive, isProduction])
+  @@map("ml_models")
+}
+
+model MLTrainingJob {
+  id              String              @id @default(cuid())
+  modelId         String
+  jobName         String
+  status          MLTrainingStatus    @default(QUEUED)
+  startTime       DateTime?
+  endTime         DateTime?
+  duration        Int?                // Training duration in milliseconds
+  trainingConfig  Json                // Training hyperparameters
+  datasetPath     String?             // Path to training dataset
+  datasetSize     Int?                // Number of training samples
+  validationSplit Float?              // Validation split ratio
+  epochs          Int?                // Number of training epochs
+  batchSize       Int?                // Training batch size
+  learningRate    Float?              // Learning rate
+  lossFunctionData Json?              // Loss function progression
+  accuracyData    Json?               // Accuracy progression
+  validationLoss  Float?              // Final validation loss
+  validationAccuracy Float?           // Final validation accuracy
+  modelCheckpoints Json?              // Model checkpoints during training
+  logs            String?             // Training logs
+  errorMessage    String?             // Error message if failed
+  tenantId        String
+  userId          String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  model           MLModel             @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+  user            User?               @relation(fields: [userId], references: [id])
+
+  @@index([modelId, status])
+  @@index([tenantId, status, startTime])
+  @@map("ml_training_jobs")
+}
+
+model MLPrediction {
+  id              String              @id @default(cuid())
+  modelId         String
+  predictionType  MLPredictionType    // SALES_FORECAST, CASH_FLOW, PROJECT_TIMELINE, ANOMALY, CUSTOMER_BEHAVIOR
+  inputData       Json                // Input features for prediction
+  outputData      Json                // Prediction results
+  confidence      Float?              // Prediction confidence (0-1)
+  probability     Json?               // Probability distribution (for classification)
+  predictionDate  DateTime            @default(now())
+  targetDate      DateTime?           // Date being predicted for
+  actualValue     Json?               // Actual value (for accuracy tracking)
+  accuracy        Float?              // Prediction accuracy once actual is known
+  isCorrect       Boolean?            // Whether prediction was correct
+  resourceType    String?             // CUSTOMER, PROJECT, INVOICE, TRANSACTION
+  resourceId      String?             // ID of related resource
+  context         Json?               // Additional context data
+  batchId         String?             // Batch prediction ID
+  tenantId        String
+  userId          String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  model           MLModel             @relation(fields: [modelId], references: [id])
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+  user            User?               @relation(fields: [userId], references: [id])
+
+  @@index([modelId, predictionType])
+  @@index([tenantId, predictionDate])
+  @@index([resourceType, resourceId])
+  @@index([targetDate, isCorrect])
+  @@map("ml_predictions")
+}
+
+model MLAnomalyDetection {
+  id              String              @id @default(cuid())
+  anomalyType     MLAnomalyType       // FINANCIAL, PROJECT, CUSTOMER_BEHAVIOR, PERFORMANCE, DATA_QUALITY
+  dataSource      String              // Source of the data being analyzed
+  inputData       Json                // Data that was analyzed
+  anomalyScore    Float               // Anomaly score (0-1, higher = more anomalous)
+  threshold       Float               // Threshold used for detection
+  isAnomaly       Boolean             // Whether this is considered an anomaly
+  severity        AnomalySeverity     @default(MEDIUM)
+  description     String              // Human-readable description of the anomaly
+  explanation     String?             // Detailed explanation of why it's anomalous
+  recommendations Json?               // Recommended actions
+  detectionMethod String              // Method used for detection (ISOLATION_FOREST, LSTM_AUTOENCODER, etc.)
+  detectedAt      DateTime            @default(now())
+  acknowledgedAt  DateTime?           // When the anomaly was acknowledged
+  resolvedAt      DateTime?           // When the anomaly was resolved
+  status          AnomalyStatus       @default(OPEN)
+  falsePositive   Boolean?            // Whether this was marked as false positive
+  resourceType    String?             // Type of resource affected
+  resourceId      String?             // ID of affected resource
+  alertSent       Boolean             @default(false)
+  tenantId        String
+  userId          String?             // User who acknowledged/resolved
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+  user            User?               @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, anomalyType, status])
+  @@index([isAnomaly, severity, detectedAt])
+  @@index([resourceType, resourceId])
+  @@map("ml_anomaly_detection")
+}
+
+model MLFeature {
+  id              String              @id @default(cuid())
+  modelId         String
+  name            String              // Feature name
+  type            MLFeatureType       // NUMERICAL, CATEGORICAL, TEXT, DATETIME, BOOLEAN
+  description     String?             // Feature description
+  dataType        String              // Data type (FLOAT, INT, STRING, etc.)
+  sourceColumn    String?             // Source data column
+  transformation  String?             // Transformation applied (LOG, NORMALIZE, ONE_HOT, etc.)
+  importance      Float?              // Feature importance score
+  isActive        Boolean             @default(true)
+  statistics      Json?               // Feature statistics (mean, std, min, max, etc.)
+  categories      String[]            // Categories for categorical features
+  encoding        Json?               // Encoding information
+  tenantId        String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  model           MLModel             @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+
+  @@unique([modelId, name])
+  @@index([modelId, isActive])
+  @@map("ml_features")
+}
+
+model MLExperiment {
+  id              String              @id @default(cuid())
+  name            String
+  description     String?
+  modelId         String?             // Base model for experiment
+  experimentType  MLExperimentType    // A_B_TEST, HYPERPARAMETER_TUNING, FEATURE_SELECTION, MODEL_COMPARISON
+  status          MLExperimentStatus  @default(RUNNING)
+  startDate       DateTime            @default(now())
+  endDate         DateTime?
+  configuration   Json                // Experiment configuration
+  variants        Json                // Different variants being tested
+  metrics         Json                // Experiment metrics and results
+  winnerVariant   String?             // Winning variant ID
+  confidence      Float?              // Statistical confidence in results
+  significanceLevel Float?            // P-value or significance level
+  sampleSize      Int?                // Sample size used
+  results         Json?               // Detailed experiment results
+  conclusions     String?             // Experiment conclusions
+  isActive        Boolean             @default(true)
+  tenantId        String
+  userId          String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  model           MLModel?            @relation(fields: [modelId], references: [id])
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+  user            User?               @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, status])
+  @@index([experimentType, isActive])
+  @@map("ml_experiments")
+}
+
+model MLDataPipeline {
+  id              String              @id @default(cuid())
+  name            String
+  description     String?
+  pipelineType    MLPipelineType      // DATA_INGESTION, PREPROCESSING, FEATURE_ENGINEERING, MODEL_TRAINING, PREDICTION
+  status          MLPipelineStatus    @default(ACTIVE)
+  sourceConfig    Json                // Data source configuration
+  steps           Json                // Pipeline steps configuration
+  schedule        String?             // Cron schedule for automated runs
+  lastRunAt       DateTime?           // Last execution time
+  nextRunAt       DateTime?           // Next scheduled execution
+  successCount    Int                 @default(0)
+  failureCount    Int                 @default(0)
+  avgExecutionTime Int?               // Average execution time in milliseconds
+  outputDataPath  String?             // Path to output data
+  logs            String?             // Pipeline execution logs
+  errorMessage    String?             // Last error message
+  isActive        Boolean             @default(true)
+  tenantId        String
+  userId          String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+  user            User?               @relation(fields: [userId], references: [id])
+  executions      MLPipelineExecution[]
+
+  @@index([tenantId, status])
+  @@index([isActive, nextRunAt])
+  @@map("ml_data_pipelines")
+}
+
+model MLPipelineExecution {
+  id              String              @id @default(cuid())
+  pipelineId      String
+  executionId     String              @unique
+  status          MLExecutionStatus   @default(RUNNING)
+  startTime       DateTime            @default(now())
+  endTime         DateTime?
+  duration        Int?                // Execution duration in milliseconds
+  inputData       Json?               // Input data summary
+  outputData      Json?               // Output data summary
+  processedRecords Int?               // Number of records processed
+  errorRecords    Int?                // Number of records with errors
+  stepResults     Json?               // Results from individual steps
+  logs            String?             // Execution logs
+  errorMessage    String?             // Error message if failed
+  retryCount      Int                 @default(0)
+  tenantId        String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  pipeline        MLDataPipeline      @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+
+  @@index([pipelineId, status])
+  @@index([tenantId, startTime])
+  @@map("ml_pipeline_executions")
+}
+
+model MLModelMetrics {
+  id              String              @id @default(cuid())
+  modelId         String
+  metricType      MLMetricType        // ACCURACY, PRECISION, RECALL, F1_SCORE, MSE, MAE, R2_SCORE, AUC_ROC
+  value           Float               // Metric value
+  datasetType     String              // TRAINING, VALIDATION, TEST, PRODUCTION
+  evaluationDate  DateTime            @default(now())
+  sampleSize      Int?                // Number of samples used for evaluation
+  metadata        Json?               // Additional metric metadata
+  tenantId        String
+  createdAt       DateTime            @default(now())
+
+  model           MLModel             @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+
+  @@index([modelId, metricType, evaluationDate])
+  @@index([tenantId, evaluationDate])
+  @@map("ml_model_metrics")
+}
+
+// Add ML relations to existing models
+// User model extensions for ML
+// Tenant model extensions for ML
+
+enum MLModelType {
+  REGRESSION
+  CLASSIFICATION
+  CLUSTERING
+  TIME_SERIES
+  NEURAL_NETWORK
+  ENSEMBLE
+  DEEP_LEARNING
+  REINFORCEMENT_LEARNING
+}
+
+enum MLModelStatus {
+  TRAINING
+  TRAINED
+  DEPLOYED
+  DEPRECATED
+  FAILED
+  TESTING
+}
+
+enum MLTrainingStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  PAUSED
+}
+
+enum MLPredictionType {
+  SALES_FORECAST
+  CASH_FLOW_PREDICTION
+  PROJECT_TIMELINE
+  CUSTOMER_BEHAVIOR
+  ANOMALY_DETECTION
+  RISK_ASSESSMENT
+  DEMAND_FORECAST
+  PRICE_OPTIMIZATION
+  CHURN_PREDICTION
+  LEAD_SCORING
+}
+
+enum MLAnomalyType {
+  FINANCIAL
+  PROJECT
+  CUSTOMER_BEHAVIOR
+  PERFORMANCE
+  DATA_QUALITY
+  SECURITY
+  OPERATIONAL
+}
+
+enum AnomalySeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AnomalyStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+  FALSE_POSITIVE
+  IGNORED
+}
+
+enum MLFeatureType {
+  NUMERICAL
+  CATEGORICAL
+  TEXT
+  DATETIME
+  BOOLEAN
+  GEOSPATIAL
+  IMAGE
+  AUDIO
+}
+
+enum MLExperimentType {
+  A_B_TEST
+  HYPERPARAMETER_TUNING
+  FEATURE_SELECTION
+  MODEL_COMPARISON
+  CROSS_VALIDATION
+  ENSEMBLE_TESTING
+}
+
+enum MLExperimentStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  PAUSED
+}
+
+enum MLPipelineType {
+  DATA_INGESTION
+  PREPROCESSING
+  FEATURE_ENGINEERING
+  MODEL_TRAINING
+  PREDICTION
+  EVALUATION
+  DEPLOYMENT
+}
+
+enum MLPipelineStatus {
+  ACTIVE
+  INACTIVE
+  FAILED
+  PAUSED
+}
+
+enum MLExecutionStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  TIMEOUT
+}
+
+enum MLMetricType {
+  ACCURACY
+  PRECISION
+  RECALL
+  F1_SCORE
+  MSE
+  MAE
+  R2_SCORE
+  AUC_ROC
+  AUC_PR
+  LOG_LOSS
+  CONFUSION_MATRIX
+  FEATURE_IMPORTANCE
+}
+
+// ==================== EVENT-DRIVEN ORCHESTRATION MODELS ====================
+
+model EventBus {
+  id          String      @id @default(cuid())
+  eventType   EventType
+  eventName   String      // INVOICE_CREATED, TASK_COMPLETED, ANOMALY_DETECTED
+  source      String      // Module that generated the event
+  target      String?     // Target module (null for broadcast)
+  payload     Json        // Event data
+  metadata    Json?       // Additional metadata (user, tenant, timestamps)
+  priority    EventPriority @default(MEDIUM)
+  status      EventStatus @default(PENDING)
+  retryCount  Int         @default(0)
+  maxRetries  Int         @default(3)
+  scheduledAt DateTime?   // For delayed events
+  processedAt DateTime?   // When event was processed
+  errorLog    String?     // Error details if failed
+  tenantId    String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  handlers EventHandler[]
+  correlations EventCorrelation[]
+  parentEventCorrelations EventCorrelation[] @relation("ParentEvent")
+
+  @@index([eventType, status])
+  @@index([tenantId, createdAt])
+  @@index([scheduledAt, status])
+  @@map("event_bus")
+}
+
+model EventHandler {
+  id           String      @id @default(cuid())
+  eventBusId   String
+  handlerName  String      // Handler function name
+  module       String      // Module that handles the event
+  status       HandlerStatus @default(PENDING)
+  executedAt   DateTime?
+  executionTime Int?       // Execution time in milliseconds
+  errorMessage String?
+  result       Json?       // Handler execution result
+  tenantId     String
+  createdAt    DateTime    @default(now())
+
+  eventBus EventBus @relation(fields: [eventBusId], references: [id], onDelete: Cascade)
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([eventBusId, status])
+  @@map("event_handlers")
+}
+
+model EventCorrelation {
+  id             String   @id @default(cuid())
+  correlationId  String   // Unique correlation ID for related events
+  eventBusId     String
+  parentEventId  String?  // Parent event for chained events
+  workflowId     String?  // Workflow this event belongs to
+  sequenceNumber Int      @default(1)
+  tenantId       String
+  createdAt      DateTime @default(now())
+
+  eventBus    EventBus  @relation(fields: [eventBusId], references: [id], onDelete: Cascade)
+  parentEvent EventBus? @relation("ParentEvent", fields: [parentEventId], references: [id])
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@index([correlationId, sequenceNumber])
+  @@index([workflowId])
+  @@map("event_correlations")
+}
+
+model EventSubscription {
+  id           String      @id @default(cuid())
+  subscriberId String      // Module or service ID
+  eventPattern String      // Event pattern to match (e.g., "finance.*", "project.task.completed")
+  isActive     Boolean     @default(true)
+  priority     Int         @default(100)
+  filterConfig Json?       // Additional filtering configuration
+  tenantId     String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([subscriberId, isActive])
+  @@index([eventPattern])
+  @@map("event_subscriptions")
+}
+
+model WorkflowDefinition {
+  id           String            @id @default(cuid())
+  name         String
+  description  String?
+  version      String            @default("1.0")
+  triggerEvent String            // Event that triggers this workflow
+  steps        Json              // Workflow steps definition
+  isActive     Boolean           @default(true)
+  tenantId     String
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  tenant     Tenant              @relation(fields: [tenantId], references: [id])
+  executions WorkflowExecution[]
+
+  @@unique([name, version, tenantId])
+  @@map("workflow_definitions")
+}
+
+model WorkflowExecution {
+  id                   String               @id @default(cuid())
+  workflowDefinitionId String
+  correlationId        String               // Links to event correlation
+  status               WorkflowExecStatus   @default(RUNNING)
+  currentStep          Int                  @default(1)
+  totalSteps           Int
+  startTime            DateTime             @default(now())
+  endTime              DateTime?
+  inputData            Json
+  outputData           Json?
+  errorMessage         String?
+  retryCount           Int                  @default(0)
+  tenantId             String
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  workflowDefinition WorkflowDefinition @relation(fields: [workflowDefinitionId], references: [id])
+  tenant             Tenant             @relation(fields: [tenantId], references: [id])
+  steps              WorkflowStep[]
+
+  @@index([workflowDefinitionId, status])
+  @@index([correlationId])
+  @@map("workflow_executions")
+}
+
+model WorkflowStep {
+  id                  String            @id @default(cuid())
+  workflowExecutionId String
+  stepNumber          Int
+  stepName            String
+  stepType            StepType          // AI_ANALYSIS, HTTP_REQUEST, DATABASE_UPDATE, NOTIFICATION
+  status              StepStatus        @default(PENDING)
+  inputData           Json?
+  outputData          Json?
+  errorMessage        String?
+  startTime           DateTime?
+  endTime             DateTime?
+  executionTime       Int?              // Execution time in milliseconds
+  retryCount          Int               @default(0)
+  tenantId            String
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  workflowExecution WorkflowExecution @relation(fields: [workflowExecutionId], references: [id], onDelete: Cascade)
+  tenant            Tenant            @relation(fields: [tenantId], references: [id])
+
+  @@index([workflowExecutionId, stepNumber])
+  @@map("workflow_steps")
+}
+
+model RealTimeNotification {
+  id           String              @id @default(cuid())
+  userId       String?             // Null for broadcast notifications
+  title        String
+  message      String
+  type         NotificationType
+  severity     NotificationSeverity @default(INFO)
+  data         Json?               // Additional notification data
+  isRead       Boolean             @default(false)
+  isPersistent Boolean             @default(false) // Whether to store in DB
+  channel      String?             // WebSocket channel
+  expiresAt    DateTime?           // When notification expires
+  tenantId     String
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  user   User?  @relation(fields: [userId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([userId, isRead])
+  @@index([tenantId, type])
+  @@index([expiresAt])
+  @@map("realtime_notifications")
+}
+
+model AIOrchestrationMetrics {
+  id                    String   @id @default(cuid())
+  eventProcessedCount   Int      @default(0)
+  avgProcessingTime     Float    @default(0) // in milliseconds
+  successRate           Float    @default(0) // 0-1
+  errorRate             Float    @default(0) // 0-1
+  automationScore       Float    @default(0) // AI autonomy score 0-1
+  workflowSuccessRate   Float    @default(0)
+  aiDecisionAccuracy    Float    @default(0)
+  userSatisfactionScore Float    @default(0)
+  date                  DateTime @db.Date
+  tenantId              String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([date, tenantId])
+  @@index([tenantId, date])
+  @@map("ai_orchestration_metrics")
+}
+
+
+
+// ==================== EVENT ENUMS ====================
+
+enum EventType {
+  BUSINESS_EVENT    // Customer created, invoice generated, etc.
+  SYSTEM_EVENT      // System startup, shutdown, etc.
+  AI_EVENT          // AI prediction, insight generated, etc.
+  USER_EVENT        // User login, action performed, etc.
+  INTEGRATION_EVENT // External system events
+  WORKFLOW_EVENT    // Workflow state changes
+  MONITORING_EVENT  // Performance, health checks
+}
+
+enum EventPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+  URGENT
+}
+
+enum EventStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  RETRYING
+  CANCELLED
+  EXPIRED
+}
+
+enum HandlerStatus {
+  PENDING
+  EXECUTING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+enum WorkflowExecStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  PAUSED
+  CANCELLED
+}
+
+enum StepType {
+  AI_ANALYSIS
+  AI_DECISION
+  HTTP_REQUEST
+  DATABASE_UPDATE
+  NOTIFICATION
+  EMAIL_SEND
+  WEBHOOK_CALL
+  DATA_TRANSFORM
+  CONDITIONAL
+  PARALLEL
+  DELAY
+}
+
+enum StepStatus {
+  PENDING
+  EXECUTING
+  COMPLETED
+  FAILED
+  SKIPPED
+  RETRYING
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  AI_INSIGHT
+  WORKFLOW_UPDATE
+  BUSINESS_ALERT
+  SYSTEM_NOTIFICATION
+}
+
+enum NotificationSeverity {
+  INFO
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// ==================== SELF-LEARNING SYSTEMS MODELS (SPRINT 1.5) ====================
+
+// Reinforcement Learning Agent Model
+model RLAgent {
+  id              String              @id @default(cuid())
+  name            String
+  description     String?
+  agentType       RLAgentType         // Q_LEARNING, POLICY_GRADIENT, ACTOR_CRITIC, MULTI_ARMED_BANDIT
+  environment     String              // Environment name (PROJECT_OPTIMIZATION, RESOURCE_ALLOCATION, etc.)
+  state           Json                // Current agent state
+  policy          Json                // Agent policy (Q-table, neural network weights, etc.)
+  hyperparameters Json                // Learning rate, epsilon, discount factor, etc.
+  performance     Json                // Performance metrics (cumulative reward, success rate, etc.)
+  isActive        Boolean             @default(true)
+  version         String              @default("1.0")
+  lastTraining    DateTime?           // Last training session
+  totalEpisodes   Int                 @default(0)
+  totalReward     Float               @default(0)
+  avgReward       Float               @default(0)
+  explorationRate Float               @default(0.1) // Epsilon for epsilon-greedy
+  learningRate    Float               @default(0.01)
+  discountFactor  Float               @default(0.95)
+  tenantId        String
+  userId          String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+  user            User?               @relation(fields: [userId], references: [id])
+  episodes        RLEpisode[]
+  actions         RLAction[]
+  states          RLState[]
+  rewards         RLReward[]
+  
+  // Self-learning relations
+  hyperparameterTuning  HyperparameterTuning[]
+  modelPerformance      ModelPerformance[]
+  conceptDrift          ConceptDrift[]
+  onlineLearningSessions OnlineLearningSession[]
+  sourceTransfers       TransferLearning[] @relation("SourceAgent")
+  targetTransfers       TransferLearning[] @relation("TargetAgent")
+  adaptiveLearning      AdaptiveLearning[]
+
+  @@index([tenantId, agentType, isActive])
+  @@index([environment, isActive])
+  @@map("rl_agents")
+}
+
+// Reinforcement Learning Episode Model
+model RLEpisode {
+  id              String              @id @default(cuid())
+  agentId         String
+  episodeNumber   Int
+  startTime       DateTime            @default(now())
+  endTime         DateTime?
+  totalSteps      Int                 @default(0)
+  totalReward     Float               @default(0)
+  avgReward       Float               @default(0)
+  finalState      Json?               // Final state of the episode
+  isCompleted     Boolean             @default(false)
+  success         Boolean?            // Whether episode was successful
+  metadata        Json?               // Additional episode data
+  tenantId        String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  agent           RLAgent             @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+  actions         RLAction[]
+  rewards         RLReward[]
+
+  @@unique([agentId, episodeNumber])
+  @@index([agentId, isCompleted])
+  @@map("rl_episodes")
+}
+
+// Reinforcement Learning Action Model
+model RLAction {
+  id              String              @id @default(cuid())
+  agentId         String
+  episodeId       String?
+  actionType      String              // Action type identifier
+  actionData      Json                // Action parameters
+  state           Json                // State when action was taken
+  qValue          Float?              // Q-value for this state-action pair
+  probability     Float?              // Action probability (for policy gradient)
+  reward          Float?              // Immediate reward received
+  nextState       Json?               // Resulting state after action
+  timestamp       DateTime            @default(now())
+  step            Int                 @default(0) // Step number in episode
+  tenantId        String
+  createdAt       DateTime            @default(now())
+
+  agent           RLAgent             @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  episode         RLEpisode?          @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+
+  @@index([agentId, timestamp])
+  @@index([episodeId, step])
+  @@map("rl_actions")
+}
+
+// Reinforcement Learning State Model
+model RLState {
+  id              String              @id @default(cuid())
+  agentId         String
+  stateData       Json                // State representation
+  stateHash       String              // Hash for quick state lookup
+  visitCount      Int                 @default(1)
+  value           Float?              // State value (for value-based methods)
+  actionValues    Json?               // Q-values for all actions from this state
+  isTerminal      Boolean             @default(false)
+  lastVisited     DateTime            @default(now())
+  tenantId        String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  agent           RLAgent             @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+
+  @@unique([agentId, stateHash])
+  @@index([agentId, visitCount])
+  @@map("rl_states")
+}
+
+// Reinforcement Learning Reward Model
+model RLReward {
+  id              String              @id @default(cuid())
+  agentId         String
+  episodeId       String?
+  rewardType      RLRewardType        // IMMEDIATE, DELAYED, SPARSE, SHAPED
+  value           Float               // Reward value
+  source          String              // Source of reward (USER_FEEDBACK, SYSTEM_METRIC, etc.)
+  context         Json?               // Context when reward was given
+  timestamp       DateTime            @default(now())
+  processed       Boolean             @default(false) // Whether used in learning update
+  tenantId        String
+  createdAt       DateTime            @default(now())
+
+  agent           RLAgent             @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  episode         RLEpisode?          @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+
+  @@index([agentId, timestamp])
+  @@index([source, processed])
+  @@map("rl_rewards")
+}
+
+// User Feedback Model
+model UserFeedback {
+  id              String              @id @default(cuid())
+  userId          String
+  feedbackType    UserFeedbackType    // EXPLICIT, IMPLICIT, RATING, PREFERENCE
+  targetType      String              // MODEL_PREDICTION, AI_DECISION, RECOMMENDATION, etc.
+  targetId        String              // ID of the target entity
+  rating          Int?                // Numeric rating (1-5 or 1-10)
+  sentiment       FeedbackSentiment?  // POSITIVE, NEGATIVE, NEUTRAL
+  comment         String?             // Text feedback
+  data            Json?               // Structured feedback data
+  context         Json?               // Context when feedback was given
+  processed       Boolean             @default(false) // Whether feedback was used for learning
+  weight          Float               @default(1.0)   // Feedback weight/importance
+  tenantId        String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  user            User                @relation(fields: [userId], references: [id])
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+
+  @@index([userId, feedbackType])
+  @@index([targetType, targetId])
+  @@index([tenantId, processed])
+  @@map("user_feedback")
+}
+
+// User Preference Model
+model UserPreference {
+  id              String              @id @default(cuid())
+  userId          String
+  preferenceType  String              // UI_LAYOUT, NOTIFICATION_FREQUENCY, AI_AGGRESSIVENESS, etc.
+  key             String              // Preference key
+  value           Json                // Preference value
+  source          PreferenceSource    // EXPLICIT, IMPLICIT, LEARNED
+  confidence      Float               @default(0.5) // Confidence in this preference (0-1)
+  lastUpdated     DateTime            @default(now())
+  updateCount     Int                 @default(1)
+  tenantId        String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  user            User                @relation(fields: [userId], references: [id])
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+
+  @@unique([userId, preferenceType, key])
+  @@index([userId, source])
+  @@map("user_preferences")
+}
+
+// Implicit Feedback Model (behavioral data)
+model ImplicitFeedback {
+  id              String              @id @default(cuid())
+  userId          String?             // Null for anonymous users
+  sessionId       String?             // Session identifier
+  action          String              // CLICK, HOVER, SCROLL, TIME_SPENT, etc.
+  targetType      String              // PREDICTION, RECOMMENDATION, BUTTON, etc.
+  targetId        String?             // ID of target entity
+  value           Float?              // Numeric value (time spent, click count, etc.)
+  context         Json                // Context data (page, time, device, etc.)
+  timestamp       DateTime            @default(now())
+  processed       Boolean             @default(false)
+  tenantId        String
+  createdAt       DateTime            @default(now())
+
+  user            User?               @relation(fields: [userId], references: [id])
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+
+  @@index([userId, action, timestamp])
+  @@index([targetType, targetId])
+  @@index([tenantId, processed])
+  @@map("implicit_feedback")
+}
+
+// Hyperparameter Tuning Model
+model HyperparameterTuning {
+  id              String              @id @default(cuid())
+  modelId         String?             // Target model for tuning
+  agentId         String?             // Target RL agent for tuning
+  tuningMethod    TuningMethod        // GRID_SEARCH, RANDOM_SEARCH, BAYESIAN, GENETIC_ALGORITHM
+  searchSpace     Json                // Parameter search space definition
+  objective       String              // Optimization objective (accuracy, f1_score, etc.)
+  currentParams   Json                // Current best parameters
+  bestParams      Json?               // Best parameters found so far
+  bestScore       Float?              // Best objective score achieved
+  iterations      Int                 @default(0)
+  maxIterations   Int                 @default(100)
+  status          TuningStatus        @default(RUNNING)
+  startTime       DateTime            @default(now())
+  endTime         DateTime?
+  results         Json?               // Detailed tuning results
+  tenantId        String
+  userId          String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  model           MLModel?            @relation(fields: [modelId], references: [id])
+  agent           RLAgent?            @relation(fields: [agentId], references: [id])
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+  user            User?               @relation(fields: [userId], references: [id])
+
+  @@index([modelId, status])
+  @@index([agentId, status])
+  @@map("hyperparameter_tuning")
+}
+
+// Model Performance Tracking
+model ModelPerformance {
+  id              String              @id @default(cuid())
+  modelId         String?
+  agentId         String?
+  metricName      String              // ACCURACY, LOSS, REWARD, F1_SCORE, etc.
+  metricValue     Float
+  baseline        Float?              // Baseline value for comparison
+  improvement     Float?              // Improvement over baseline
+  dataWindow      String              // Time window (HOUR, DAY, WEEK, MONTH)
+  sampleSize      Int?                // Number of samples
+  timestamp       DateTime            @default(now())
+  version         String?             // Model/agent version
+  environment     String?             // Environment or context
+  tenantId        String
+  createdAt       DateTime            @default(now())
+
+  model           MLModel?            @relation(fields: [modelId], references: [id])
+  agent           RLAgent?            @relation(fields: [agentId], references: [id])
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+
+  @@index([modelId, metricName, timestamp])
+  @@index([agentId, metricName, timestamp])
+  @@map("model_performance")
+}
+
+// Concept Drift Detection
+model ConceptDrift {
+  id              String              @id @default(cuid())
+  modelId         String?
+  agentId         String?
+  driftType       DriftType           // SUDDEN, GRADUAL, RECURRING, INCREMENTAL
+  detectionMethod String              // STATISTICAL_TEST, KL_DIVERGENCE, PERFORMANCE_DECAY
+  severity        DriftSeverity       // LOW, MEDIUM, HIGH, CRITICAL
+  confidence      Float               // Confidence in drift detection (0-1)
+  driftScore      Float               // Numerical drift score
+  baseline        Json                // Baseline distribution/performance
+  current         Json                // Current distribution/performance
+  detectedAt      DateTime            @default(now())
+  acknowledgedAt  DateTime?
+  adaptedAt       DateTime?           // When model was adapted
+  status          DriftStatus         @default(DETECTED)
+  recommendation  String?             // Recommended action
+  metadata        Json?               // Additional drift information
+  tenantId        String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  model           MLModel?            @relation(fields: [modelId], references: [id])
+  agent           RLAgent?            @relation(fields: [agentId], references: [id])
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+
+  @@index([modelId, severity, detectedAt])
+  @@index([agentId, severity, detectedAt])
+  @@map("concept_drift")
+}
+
+// AutoML Experiment Model
+model AutoMLExperiment {
+  id              String              @id @default(cuid())
+  name            String
+  description     String?
+  experimentType  AutoMLType          // NEURAL_ARCHITECTURE_SEARCH, AUTOML_PIPELINE, FEATURE_SELECTION
+  dataset         Json                // Dataset configuration
+  objective       String              // Optimization objective
+  constraints     Json?               // Resource/time constraints
+  searchSpace     Json                // Search space definition
+  bestModel       Json?               // Best model configuration found
+  bestScore       Float?              // Best score achieved
+  totalTrials     Int                 @default(0)
+  maxTrials       Int                 @default(100)
+  timeLimit       Int?                // Time limit in minutes
+  status          AutoMLStatus        @default(RUNNING)
+  startTime       DateTime            @default(now())
+  endTime         DateTime?
+  results         Json?               // Experiment results
+  leaderboard     Json?               // Model leaderboard
+  tenantId        String
+  userId          String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+  user            User?               @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, status])
+  @@index([experimentType, status])
+  @@map("automl_experiments")
+}
+
+// Online Learning Session
+model OnlineLearningSession {
+  id              String              @id @default(cuid())
+  modelId         String?
+  agentId         String?
+  sessionType     OnlineLearningType  // INCREMENTAL, BATCH_INCREMENTAL, STREAMING
+  learningRate    Float               @default(0.01)
+  adaptationRate  Float               @default(0.1)
+  memorySize      Int?                // Size of replay buffer/memory
+  batchSize       Int                 @default(32)
+  updateFrequency Int                 @default(100) // Updates every N samples
+  samplesProcessed Int                @default(0)
+  totalUpdates    Int                 @default(0)
+  currentLoss     Float?
+  avgLoss         Float?
+  status          LearningSessionStatus @default(ACTIVE)
+  startTime       DateTime            @default(now())
+  lastUpdate      DateTime?
+  endTime         DateTime?
+  metadata        Json?               // Session configuration and metrics
+  tenantId        String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  model           MLModel?            @relation(fields: [modelId], references: [id])
+  agent           RLAgent?            @relation(fields: [agentId], references: [id])
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+
+  @@index([modelId, status])
+  @@index([agentId, status])
+  @@map("online_learning_sessions")
+}
+
+// Transfer Learning Model
+model TransferLearning {
+  id              String              @id @default(cuid())
+  sourceModelId   String?             // Source model for transfer
+  targetModelId   String?             // Target model receiving transfer
+  sourceAgentId   String?             // Source RL agent
+  targetAgentId   String?             // Target RL agent
+  transferType    TransferType        // WEIGHTS, FEATURES, KNOWLEDGE, POLICY
+  similarity      Float?              // Similarity between source and target (0-1)
+  transferMethod  String              // FINE_TUNING, FEATURE_EXTRACTION, DOMAIN_ADAPTATION
+  layersTransferred Json?             // Which layers/components were transferred
+  freezeLayers    Json?               // Which layers to freeze during transfer
+  performance     Json?               // Transfer learning performance metrics
+  improvement     Float?              // Performance improvement achieved
+  status          TransferStatus      @default(PENDING)
+  startTime       DateTime            @default(now())
+  endTime         DateTime?
+  metadata        Json?               // Transfer configuration and results
+  tenantId        String
+  userId          String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  sourceModel     MLModel?            @relation("SourceModel", fields: [sourceModelId], references: [id])
+  targetModel     MLModel?            @relation("TargetModel", fields: [targetModelId], references: [id])
+  sourceAgent     RLAgent?            @relation("SourceAgent", fields: [sourceAgentId], references: [id])
+  targetAgent     RLAgent?            @relation("TargetAgent", fields: [targetAgentId], references: [id])
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+  user            User?               @relation(fields: [userId], references: [id])
+
+  @@index([sourceModelId, targetModelId])
+  @@index([sourceAgentId, targetAgentId])
+  @@map("transfer_learning")
+}
+
+// Adaptive Learning Configuration
+model AdaptiveLearning {
+  id              String              @id @default(cuid())
+  modelId         String?
+  agentId         String?
+  adaptationType  AdaptationType      // LEARNING_RATE, ARCHITECTURE, THRESHOLD, STRATEGY
+  trigger         String              // PERFORMANCE_DECAY, DRIFT_DETECTED, TIME_BASED, USER_FEEDBACK
+  threshold       Float?              // Trigger threshold
+  currentValue    Float?              // Current parameter value
+  targetValue     Float?              // Target parameter value
+  adaptationRule  Json                // Adaptation rule/algorithm
+  history         Json                // Adaptation history
+  isActive        Boolean             @default(true)
+  lastAdaptation  DateTime?
+  adaptationCount Int                 @default(0)
+  tenantId        String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  model           MLModel?            @relation(fields: [modelId], references: [id])
+  agent           RLAgent?            @relation(fields: [agentId], references: [id])
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+
+  @@index([modelId, adaptationType, isActive])
+  @@index([agentId, adaptationType, isActive])
+  @@map("adaptive_learning")
+}
+
+
+
+// ==================== SELF-LEARNING ENUMS ====================
+
+enum RLAgentType {
+  Q_LEARNING
+  DEEP_Q_NETWORK
+  POLICY_GRADIENT
+  ACTOR_CRITIC
+  MULTI_ARMED_BANDIT
+  THOMPSON_SAMPLING
+  UCB
+  SARSA
+  TEMPORAL_DIFFERENCE
+}
+
+enum RLRewardType {
+  IMMEDIATE
+  DELAYED
+  SPARSE
+  SHAPED
+  INTRINSIC
+  EXTRINSIC
+}
+
+enum UserFeedbackType {
+  EXPLICIT
+  IMPLICIT
+  RATING
+  PREFERENCE
+  CORRECTION
+  APPROVAL
+  DISAPPROVAL
+}
+
+enum FeedbackSentiment {
+  POSITIVE
+  NEGATIVE
+  NEUTRAL
+  MIXED
+}
+
+enum PreferenceSource {
+  EXPLICIT
+  IMPLICIT
+  LEARNED
+  INHERITED
+  DEFAULT
+}
+
+enum TuningMethod {
+  GRID_SEARCH
+  RANDOM_SEARCH
+  BAYESIAN_OPTIMIZATION
+  GENETIC_ALGORITHM
+  SIMULATED_ANNEALING
+  PARTICLE_SWARM
+  HYPERBAND
+  OPTUNA
+}
+
+enum TuningStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  PAUSED
+}
+
+enum DriftType {
+  SUDDEN
+  GRADUAL
+  RECURRING
+  INCREMENTAL
+  CYCLICAL
+}
+
+enum DriftSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum DriftStatus {
+  DETECTED
+  ACKNOWLEDGED
+  ADAPTING
+  ADAPTED
+  IGNORED
+  FALSE_POSITIVE
+}
+
+enum AutoMLType {
+  NEURAL_ARCHITECTURE_SEARCH
+  AUTOML_PIPELINE
+  FEATURE_SELECTION
+  HYPERPARAMETER_OPTIMIZATION
+  MODEL_SELECTION
+  ENSEMBLE_OPTIMIZATION
+}
+
+enum AutoMLStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  PAUSED
+}
+
+enum OnlineLearningType {
+  INCREMENTAL
+  BATCH_INCREMENTAL
+  STREAMING
+  MINI_BATCH
+  STOCHASTIC
+}
+
+enum LearningSessionStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum TransferType {
+  WEIGHTS
+  FEATURES
+  KNOWLEDGE
+  POLICY
+  ARCHITECTURE
+  PARAMETERS
+}
+
+enum TransferStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum AdaptationType {
+  LEARNING_RATE
+  ARCHITECTURE
+  THRESHOLD
+  STRATEGY
+  HYPERPARAMETER
+  POLICY
 }

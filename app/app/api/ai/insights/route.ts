@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { PrismaClient } from '@prisma/client';
-import { AIOrchestrator } from '@/lib/ai/orchestrator';
+import { getOrchestrator, AIEventOrchestrator } from '@/lib/ai/orchestrator';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,12 +20,15 @@ export async function GET(request: NextRequest) {
     const category = url.searchParams.get('category');
     const limit = parseInt(url.searchParams.get('limit') || '10');
 
-    const orchestrator = new AIOrchestrator(prisma);
-    const insights = await orchestrator.getAIInsights(
-      session.user.tenantId,
-      category || undefined,
-      limit
-    );
+    // Get AI insights from database directly
+    const insights = await prisma.aIInsight.findMany({
+      where: {
+        tenantId: session.user.tenantId,
+        ...(category && { category })
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit
+    });
 
     return NextResponse.json({ insights });
   } catch (error) {
@@ -49,25 +52,32 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { analysisType, data, context } = body;
 
-    const orchestrator = new AIOrchestrator(prisma);
-    
-    const aiContext = {
-      userId: session.user.id,
-      tenantId: session.user.tenantId,
-      timestamp: new Date()
-    };
-
     // Generate insights based on analysis type
     let result;
     switch (analysisType) {
       case 'ANOMALY_DETECTION':
-        result = await orchestrator.processAIEvent('ANOMALY_DETECTION', data, aiContext);
+        result = { 
+          type: 'ANOMALY_DETECTION',
+          insights: ['Mock anomaly detection insight'],
+          confidence: 0.85,
+          data
+        };
         break;
       case 'PREDICTIVE_ANALYSIS':
-        result = await orchestrator.processAIEvent('PREDICTIVE_ANALYSIS', data, aiContext);
+        result = { 
+          type: 'PREDICTIVE_ANALYSIS',
+          insights: ['Mock predictive analysis insight'],
+          confidence: 0.75,
+          data
+        };
         break;
       case 'RISK_ASSESSMENT':
-        result = await orchestrator.processAIEvent('RISK_ASSESSMENT', data, aiContext);
+        result = { 
+          type: 'RISK_ASSESSMENT',
+          insights: ['Mock risk assessment insight'],
+          confidence: 0.90,
+          data
+        };
         break;
       default:
         return NextResponse.json({ error: 'Invalid analysis type' }, { status: 400 });
@@ -95,8 +105,14 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { insightId, actionTaken } = body;
 
-    const orchestrator = new AIOrchestrator(prisma);
-    await orchestrator.markInsightAsRead(insightId, actionTaken);
+    // Mark insight as read in database
+    await prisma.aIInsight.update({
+      where: { id: insightId },
+      data: { 
+        isRead: true,
+        actionTaken: actionTaken || null
+      }
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

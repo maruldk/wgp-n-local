@@ -3,8 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { PrismaClient } from '@prisma/client';
-import { AIOrchestrator } from '@/lib/ai/orchestrator';
+import { getOrchestrator } from '@/lib/ai/orchestrator';
 import { LLMService } from '@/lib/ai/llm-service';
+import { AIEventOrchestrator } from '@/lib/ai/orchestrator';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     const llmService = new LLMService(prisma);
-    const orchestrator = new AIOrchestrator(prisma);
+    const orchestrator = new AIEventOrchestrator({});
     
     // Create AI context with business data
     const aiContext = {
