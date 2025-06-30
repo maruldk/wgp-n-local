@@ -15,6 +15,16 @@ import {
   Menu,
   X,
   Bot,
+  BarChart3,
+  Euro,
+  FolderKanban,
+  Clock,
+  FileText,
+  Calculator,
+  PieChart,
+  Receipt,
+  Target,
+  Calendar,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -43,6 +53,65 @@ const mainNavItems = [
     title: 'KI-Assistent',
     href: '/ai-chat',
     icon: Bot,
+  },
+];
+
+const analyticsNavItems = [
+  {
+    title: 'Analytics Dashboard',
+    href: '/analytics',
+    icon: BarChart3,
+  },
+  {
+    title: 'Berichte',
+    href: '/analytics/reports',
+    icon: FileText,
+  },
+  {
+    title: 'KPI Metriken',
+    href: '/analytics/metrics',
+    icon: Target,
+  },
+];
+
+const financeNavItems = [
+  {
+    title: 'Rechnungen',
+    href: '/finance/invoices',
+    icon: Receipt,
+  },
+  {
+    title: 'Transaktionen',
+    href: '/finance/transactions',
+    icon: Euro,
+  },
+  {
+    title: 'Budgets',
+    href: '/finance/budgets',
+    icon: Calculator,
+  },
+  {
+    title: 'Finanzberichte',
+    href: '/finance/reports',
+    icon: PieChart,
+  },
+];
+
+const projectNavItems = [
+  {
+    title: 'Projekte',
+    href: '/projects',
+    icon: FolderKanban,
+  },
+  {
+    title: 'Aufgaben',
+    href: '/projects/tasks',
+    icon: Calendar,
+  },
+  {
+    title: 'Zeiterfassung',
+    href: '/projects/timesheets',
+    icon: Clock,
   },
 ];
 
@@ -104,11 +173,95 @@ export function Sidebar({ className }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-2 p-4">
+      <nav className="flex-1 space-y-2 p-4 overflow-y-auto">
         {/* Main Navigation */}
         <div className="space-y-2">
           {mainNavItems.map((item) => {
             const isActive = pathname === item.href;
+            const Icon = item.icon;
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground',
+                  isActive && 'bg-accent text-accent-foreground',
+                  isCollapsed && 'justify-center px-2'
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {!isCollapsed && <span>{item.title}</span>}
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Analytics Section */}
+        <div className="space-y-2 border-t pt-4">
+          {!isCollapsed && (
+            <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              weANALYTICS
+            </h3>
+          )}
+          {analyticsNavItems.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+            const Icon = item.icon;
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground',
+                  isActive && 'bg-accent text-accent-foreground',
+                  isCollapsed && 'justify-center px-2'
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {!isCollapsed && <span>{item.title}</span>}
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Finance Section */}
+        <div className="space-y-2 border-t pt-4">
+          {!isCollapsed && (
+            <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              weFINANCE
+            </h3>
+          )}
+          {financeNavItems.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+            const Icon = item.icon;
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground',
+                  isActive && 'bg-accent text-accent-foreground',
+                  isCollapsed && 'justify-center px-2'
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {!isCollapsed && <span>{item.title}</span>}
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Projects Section */}
+        <div className="space-y-2 border-t pt-4">
+          {!isCollapsed && (
+            <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              wePROJECT
+            </h3>
+          )}
+          {projectNavItems.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
             const Icon = item.icon;
 
             return (

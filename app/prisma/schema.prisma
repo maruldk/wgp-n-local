@@ -59,6 +59,22 @@ model User {
   contactHistories ContactHistory[]
   assignedLeads    Lead[]
   auditLogs        AuditLog[]
+  
+  // weANALYTICS relations
+  dashboards       Dashboard[]
+  reports          Report[]
+  
+  // weFINANCE relations
+  invoices         Invoice[]
+  transactions     Transaction[]
+  budgets          Budget[]
+  datevExports     DatevExport[]
+  
+  // wePROJECT relations
+  managedProjects  Project[]
+  assignedTasks    Task[]
+  projectMemberships ProjectMember[]
+  timesheets       Timesheet[]
 
   @@map("users")
 }
@@ -84,6 +100,27 @@ model Tenant {
   customers Customer[]
   leads     Lead[]
   auditLogs AuditLog[]
+  
+  // weANALYTICS relations
+  dashboards    Dashboard[]
+  widgets       Widget[]
+  reports       Report[]
+  metrics       Metric[]
+  
+  // weFINANCE relations
+  invoices      Invoice[]
+  invoiceItems  InvoiceItem[]
+  transactions  Transaction[]
+  budgets       Budget[]
+  taxCategories TaxCategory[]
+  datevExports  DatevExport[]
+  
+  // wePROJECT relations
+  projects      Project[]
+  tasks         Task[]
+  milestones    Milestone[]
+  projectMembers ProjectMember[]
+  timesheets    Timesheet[]
 
   @@map("tenants")
 }
@@ -106,6 +143,7 @@ model Customer {
 
   tenant           Tenant           @relation(fields: [tenantId], references: [id])
   contactHistories ContactHistory[]
+  invoices         Invoice[]
 
   @@map("customers")
 }
@@ -161,6 +199,297 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+// weANALYTICS Models
+model Dashboard {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  layout      Json?
+  isDefault   Boolean  @default(false)
+  tenantId    String
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id])
+  user    User     @relation(fields: [userId], references: [id])
+  widgets Widget[]
+
+  @@map("dashboards")
+}
+
+model Widget {
+  id           String     @id @default(cuid())
+  dashboardId  String
+  name         String
+  type         WidgetType
+  config       Json?
+  position     Json?
+  size         Json?
+  dataSource   String?
+  tenantId     String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  dashboard Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@map("widgets")
+}
+
+model Report {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  type        ReportType
+  config      Json?
+  data        Json?
+  tenantId    String
+  userId      String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("reports")
+}
+
+model Metric {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  formula     String
+  target      Float?
+  currentValue Float?
+  tenantId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@map("metrics")
+}
+
+// weFINANCE Models
+model Invoice {
+  id             String        @id @default(cuid())
+  invoiceNumber  String        @unique
+  customerId     String?
+  customerName   String
+  customerEmail  String?
+  customerAddress String?
+  status         InvoiceStatus @default(DRAFT)
+  issueDate      DateTime
+  dueDate        DateTime
+  subtotal       Float         @default(0)
+  taxAmount      Float         @default(0)
+  totalAmount    Float         @default(0)
+  notes          String?
+  terms          String?
+  tenantId       String
+  userId         String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  customer Customer?     @relation(fields: [customerId], references: [id])
+  tenant   Tenant        @relation(fields: [tenantId], references: [id])
+  user     User          @relation(fields: [userId], references: [id])
+  items    InvoiceItem[]
+  transactions Transaction[]
+
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  description String
+  quantity    Float   @default(1)
+  unitPrice   Float
+  taxRate     Float   @default(0)
+  totalPrice  Float
+  tenantId    String
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+
+  @@map("invoice_items")
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  description String
+  amount      Float
+  type        TransactionType
+  category    String?
+  date        DateTime
+  reference   String?
+  invoiceId   String?
+  tenantId    String
+  userId      String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  invoice Invoice? @relation(fields: [invoiceId], references: [id])
+  tenant  Tenant   @relation(fields: [tenantId], references: [id])
+  user    User     @relation(fields: [userId], references: [id])
+
+  @@map("transactions")
+}
+
+model Budget {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String
+  budgetAmount Float
+  spentAmount Float    @default(0)
+  startDate   DateTime
+  endDate     DateTime
+  tenantId    String
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("budgets")
+}
+
+model TaxCategory {
+  id       String @id @default(cuid())
+  name     String
+  rate     Float
+  tenantId String
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([name, tenantId])
+  @@map("tax_categories")
+}
+
+model DatevExport {
+  id        String   @id @default(cuid())
+  filename  String
+  startDate DateTime
+  endDate   DateTime
+  data      Json?
+  tenantId  String
+  userId    String
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("datev_exports")
+}
+
+// wePROJECT Models
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(PLANNING)
+  startDate   DateTime?
+  endDate     DateTime?
+  budget      Float?
+  tenantId    String
+  managerId   String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  tenant    Tenant          @relation(fields: [tenantId], references: [id])
+  manager   User            @relation(fields: [managerId], references: [id])
+  tasks     Task[]
+  members   ProjectMember[]
+  milestones Milestone[]
+  timesheets Timesheet[]
+
+  @@map("projects")
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  projectId   String
+  name        String
+  description String?
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  assigneeId  String?
+  startDate   DateTime?
+  dueDate     DateTime?
+  estimatedHours Float?
+  actualHours Float?
+  parentTaskId String?
+  tenantId    String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  project    Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee   User?       @relation(fields: [assigneeId], references: [id])
+  parentTask Task?       @relation("TaskSubtasks", fields: [parentTaskId], references: [id])
+  subtasks   Task[]      @relation("TaskSubtasks")
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  timesheets Timesheet[]
+
+  @@map("tasks")
+}
+
+model Milestone {
+  id          String   @id @default(cuid())
+  projectId   String
+  name        String
+  description String?
+  dueDate     DateTime
+  isCompleted Boolean  @default(false)
+  tenantId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+
+  @@map("milestones")
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  role      String?
+  joinedAt  DateTime @default(now())
+  tenantId  String
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+
+  @@unique([projectId, userId])
+  @@map("project_members")
+}
+
+model Timesheet {
+  id          String   @id @default(cuid())
+  projectId   String?
+  taskId      String?
+  userId      String
+  date        DateTime
+  hours       Float
+  description String?
+  tenantId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project Project? @relation(fields: [projectId], references: [id])
+  task    Task?    @relation(fields: [taskId], references: [id])
+  user    User     @relation(fields: [userId], references: [id])
+  tenant  Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@map("timesheets")
+}
+
 enum UserRole {
   SUPER_ADMIN
   ADMIN
@@ -192,4 +521,58 @@ enum LeadStatus {
   NEGOTIATION
   WON
   LOST
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum WidgetType {
+  CHART_LINE
+  CHART_BAR
+  CHART_PIE
+  CHART_DOUGHNUT
+  METRIC_CARD
+  TABLE
+  GAUGE
+}
+
+enum ReportType {
+  ANALYTICS
+  FINANCIAL
+  PROJECT
+  CUSTOM
 }
