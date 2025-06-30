@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AIEnhancedAnalytics } from '@/components/ai/ai-enhanced-analytics';
 import { 
   BarChart3, 
   TrendingUp, 
@@ -19,7 +21,9 @@ import {
   Filter,
   Download,
   AlertCircle,
-  Loader2
+  Loader2,
+  Brain,
+  Sparkles
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -270,8 +274,26 @@ export default function AnalyticsPage() {
         </div>
       </motion.div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Main Content Tabs */}
+      <Tabs defaultValue="standard" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="standard" className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Standard Analytics
+          </TabsTrigger>
+          <TabsTrigger value="ai-enhanced" className="flex items-center gap-2">
+            <Brain className="w-4 h-4" />
+            KI-Enhanced Analytics
+            <Badge variant="secondary" className="ml-1">
+              <Sparkles className="w-3 h-3 mr-1" />
+              AI
+            </Badge>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="standard" className="space-y-6">
+          {/* KPI Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {kpiCards.map((kpi, index) => {
           const Icon = kpi.icon;
           return (
@@ -545,6 +567,12 @@ export default function AnalyticsPage() {
           </Card>
         </motion.div>
       )}
+        </TabsContent>
+
+        <TabsContent value="ai-enhanced" className="space-y-6">
+          <AIEnhancedAnalytics />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -11,6 +11,8 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AIEnhancedProject } from '@/components/ai/ai-enhanced-project';
 import { 
   FolderKanban, 
   Plus, 
@@ -28,7 +30,9 @@ import {
   Eye,
   Edit,
   AlertCircle,
-  Loader2
+  Loader2,
+  Brain,
+  Sparkles
 } from 'lucide-react';
 import { Project } from '@/lib/types';
 
@@ -165,8 +169,26 @@ export default function ProjectsPage() {
         </Button>
       </motion.div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* Main Content Tabs */}
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <FolderKanban className="w-4 h-4" />
+            Projekt-Übersicht
+          </TabsTrigger>
+          <TabsTrigger value="ai-enhanced" className="flex items-center gap-2">
+            <Brain className="w-4 h-4" />
+            KI-Enhanced Projects
+            <Badge variant="secondary" className="ml-1">
+              <Sparkles className="w-3 h-3 mr-1" />
+              AI
+            </Badge>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
           { 
             title: 'Gesamt Projekte', 
@@ -480,6 +502,12 @@ export default function ProjectsPage() {
           </CardContent>
         </Card>
       </motion.div>
+        </TabsContent>
+
+        <TabsContent value="ai-enhanced" className="space-y-6">
+          <AIEnhancedProject />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

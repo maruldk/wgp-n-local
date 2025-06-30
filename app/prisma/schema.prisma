@@ -75,6 +75,13 @@ model User {
   assignedTasks    Task[]
   projectMemberships ProjectMember[]
   timesheets       Timesheet[]
+  
+  // KI-ORCHESTRATOR relations
+  aiDecisions      AIDecision[]
+  aiInsights       AIInsight[]
+  aiAuditTrails    AIAuditTrail[]
+  aiFeedback       AIFeedback[]
+  aiWorkflowExecutions AIWorkflowExecution[]
 
   @@map("users")
 }
@@ -121,6 +128,15 @@ model Tenant {
   milestones    Milestone[]
   projectMembers ProjectMember[]
   timesheets    Timesheet[]
+  
+  // KI-ORCHESTRATOR relations
+  aiDecisions   AIDecision[]
+  aiInsights    AIInsight[]
+  aiAuditTrails AIAuditTrail[]
+  aiPredictions AIPrediction[]
+  aiFeedback    AIFeedback[]
+  aiModelMetrics AIModelMetrics[]
+  aiWorkflowExecutions AIWorkflowExecution[]
 
   @@map("tenants")
 }
@@ -575,4 +591,196 @@ enum ReportType {
   FINANCIAL
   PROJECT
   CUSTOM
+}
+
+// KI-ORCHESTRATOR Models
+model AIDecision {
+  id           String   @id @default(cuid())
+  decisionType String   // RESOURCE_ALLOCATION, RISK_ASSESSMENT, PREDICTION, OPTIMIZATION
+  context      Json     // Input data for the decision
+  decision     Json     // AI's decision/recommendation
+  confidence   Float    // Confidence score 0-1
+  reasoning    String?  // Explainable AI reasoning
+  userId       String?
+  tenantId     String
+  resourceType String?  // PROJECT, TASK, FINANCE, CUSTOMER
+  resourceId   String?
+  isAccepted   Boolean? // User acceptance of AI decision
+  feedback     String?  // User feedback on decision quality
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user   User?  @relation(fields: [userId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, decisionType])
+  @@index([resourceType, resourceId])
+  @@map("ai_decisions")
+}
+
+model AIInsight {
+  id           String      @id @default(cuid())
+  category     String      // ANALYTICS, FINANCE, PROJECT, CUSTOMER
+  type         InsightType
+  title        String
+  description  String
+  severity     String      // LOW, MEDIUM, HIGH, CRITICAL
+  data         Json        // Supporting data/metrics
+  confidence   Float       // Confidence score 0-1
+  isRead       Boolean     @default(false)
+  isActionable Boolean     @default(false)
+  actionTaken  String?
+  tenantId     String
+  userId       String?
+  resourceType String?
+  resourceId   String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User?  @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, category])
+  @@index([isRead, severity])
+  @@map("ai_insights")
+}
+
+model AIAuditTrail {
+  id           String   @id @default(cuid())
+  aiAction     String   // PREDICTION, OPTIMIZATION, ANALYSIS, RECOMMENDATION
+  module       String   // ANALYTICS, FINANCE, PROJECT, ORCHESTRATOR
+  inputData    Json     // Input data processed
+  outputData   Json     // AI output/result
+  confidence   Float    // Confidence score
+  processingTime Int    // Processing time in milliseconds
+  modelVersion String?  // AI model version used
+  userId       String?
+  tenantId     String
+  resourceType String?
+  resourceId   String?
+  createdAt    DateTime @default(now())
+
+  user   User?  @relation(fields: [userId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, aiAction])
+  @@index([module, createdAt])
+  @@map("ai_audit_trails")
+}
+
+model AIPrediction {
+  id           String          @id @default(cuid())
+  predictionType String        // CASHFLOW, PROJECT_COMPLETION, RISK_SCORE, DEMAND_FORECAST
+  targetDate   DateTime        // Date of prediction
+  predictedValue Float         // Predicted numerical value
+  actualValue  Float?          // Actual value (for accuracy tracking)
+  accuracy     Float?          // Accuracy score once actual is known
+  confidence   Float           // Confidence in prediction
+  modelData    Json            // Model parameters and input data
+  status       PredictionStatus @default(ACTIVE)
+  tenantId     String
+  resourceType String?
+  resourceId   String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, predictionType])
+  @@index([targetDate, status])
+  @@map("ai_predictions")
+}
+
+model AIFeedback {
+  id           String      @id @default(cuid())
+  feedbackType FeedbackType
+  rating       Int         // 1-5 rating
+  comment      String?
+  aiDecisionId String?
+  aiInsightId  String?
+  userId       String
+  tenantId     String
+  createdAt    DateTime    @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, feedbackType])
+  @@map("ai_feedback")
+}
+
+model AIModelMetrics {
+  id           String   @id @default(cuid())
+  modelName    String   // PREDICTIVE_ANALYTICS, RISK_ASSESSMENT, RESOURCE_OPTIMIZER
+  version      String
+  accuracy     Float    // Model accuracy score
+  precision    Float    // Precision metric
+  recall       Float    // Recall metric
+  f1Score      Float    // F1 score
+  trainingData Json     // Training data statistics
+  lastTrained  DateTime
+  tenantId     String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([modelName, version, tenantId])
+  @@map("ai_model_metrics")
+}
+
+model AIWorkflowExecution {
+  id           String             @id @default(cuid())
+  workflowName String             // FINANCE_PROCESSING, PROJECT_OPTIMIZATION, ANALYTICS_GENERATION
+  status       WorkflowStatus     @default(RUNNING)
+  startTime    DateTime           @default(now())
+  endTime      DateTime?
+  duration     Int?               // Duration in milliseconds
+  inputData    Json
+  outputData   Json?
+  errorMessage String?
+  tenantId     String
+  userId       String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User?  @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, workflowName])
+  @@index([status, startTime])
+  @@map("ai_workflow_executions")
+}
+
+enum InsightType {
+  ANOMALY
+  TREND
+  PREDICTION
+  OPTIMIZATION
+  RISK
+  OPPORTUNITY
+  ALERT
+}
+
+enum PredictionStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+  INVALIDATED
+}
+
+enum FeedbackType {
+  DECISION_QUALITY
+  INSIGHT_RELEVANCE
+  PREDICTION_ACCURACY
+  WORKFLOW_EFFICIENCY
+  GENERAL
+}
+
+enum WorkflowStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
 }
