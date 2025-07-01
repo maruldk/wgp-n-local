@@ -48,6 +48,10 @@ export class PredictiveAnalyticsService {
       // Create or get sales forecasting model
       let model = await this.getOrCreateSalesModel();
       
+      if (!model) {
+        throw new Error('Failed to create or retrieve sales forecasting model');
+      }
+      
       // Train model if needed
       if (model.status !== 'TRAINED' || this.shouldRetrainModel(model.lastTrainingDate)) {
         const trainingJob = await this.mlPipeline.trainModel(model.id, trainingData, {
@@ -56,9 +60,20 @@ export class PredictiveAnalyticsService {
           validationSplit: 0.2
         });
         
-        model = await prisma.mLModel.findUnique({
+        const updatedModel = await prisma.mLModel.findUnique({
           where: { id: model.id }
         }) as any;
+        
+        if (!updatedModel) {
+          throw new Error('Model not found after training');
+        }
+        
+        model = updatedModel;
+      }
+
+      // Ensure model is still not null after potential reassignment
+      if (!model) {
+        throw new Error('Model is unexpectedly null');
       }
 
       // Generate predictions
@@ -167,7 +182,7 @@ export class PredictiveAnalyticsService {
           forecastHorizon: 30,
           useSeasonality: true
         }
-      });
+      }) as any;
     }
 
     return model;

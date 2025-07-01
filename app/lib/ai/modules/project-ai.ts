@@ -43,16 +43,12 @@ export class WeProjectAI {
           ...(riskAssessment.insights || []),
           ...(resourceOptimization.insights || []),
           ...(healthPrediction.insights || [])
-        ],
-        predictions: [
-          ...(timeEstimations.predictions || []),
-          ...(healthPrediction.predictions || [])
         ]
       };
     } catch (error) {
       return {
         success: false,
-        errors: [error instanceof Error ? error.message : 'Project AI failed']
+        error: error instanceof Error ? error.message : 'Project AI failed'
       };
     }
   }

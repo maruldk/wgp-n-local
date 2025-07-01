@@ -22,7 +22,8 @@ import {
   Settings,
   Send
 } from 'lucide-react';
-import { UserFeedbackSummary, FeedbackSentiment } from '@/lib/types';
+import { UserFeedbackSummary } from '@/lib/types';
+import { FeedbackSentiment } from '@prisma/client';
 
 export function UserFeedbackPanel() {
   const [feedbackData, setFeedbackData] = useState<any>(null);

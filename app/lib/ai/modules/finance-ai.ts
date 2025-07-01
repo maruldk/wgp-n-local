@@ -35,13 +35,12 @@ export class WeFinanceAI {
           categorization,
           financialData
         },
-        insights: [...(fraudDetection.insights || []), ...(budgetOptimization.insights || [])],
-        predictions: cashflowPredictions || []
+        insights: [...(fraudDetection.insights || []), ...(budgetOptimization.insights || [])]
       };
     } catch (error) {
       return {
         success: false,
-        errors: [error instanceof Error ? error.message : 'Finance AI failed']
+        error: error instanceof Error ? error.message : 'Finance AI failed'
       };
     }
   }

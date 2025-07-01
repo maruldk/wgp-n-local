@@ -34,13 +34,12 @@ export class WeAnalyticsAI {
           anomalies: anomalies,
           analytics: analyticsData
         },
-        insights: insights.insights || [],
-        predictions: predictions || []
+        insights: insights.insights || []
       };
     } catch (error) {
       return {
         success: false,
-        errors: [error instanceof Error ? error.message : 'Analytics AI failed']
+        error: error instanceof Error ? error.message : 'Analytics AI failed'
       };
     }
   }

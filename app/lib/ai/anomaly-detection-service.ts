@@ -211,7 +211,7 @@ export class AnomalyDetectionService {
   }
 
   private async detectTimingAnomalies(category: string, transactions: any[]): Promise<MLAnomalyDetectionItem[]> {
-    const anomalies: MLAnomalyDetectionItem[] = [];
+    const anomalyPromises: Promise<MLAnomalyDetectionItem>[] = [];
 
     // Detect transactions at unusual times
     const hourCounts = new Array(24).fill(0);
@@ -230,7 +230,7 @@ export class AnomalyDetectionService {
       const zScore = Math.abs((count - avgHourlyCount) / stdDevHourly);
       
       if (zScore > 2 && (hour < 6 || hour > 22)) { // Unusual activity during off hours
-        anomalies.push(await this.createAnomalyRecord({
+        anomalyPromises.push(this.createAnomalyRecord({
           anomalyType: 'FINANCIAL',
           dataSource: 'transaction_timing',
           inputData: { category, hour, count, avgCount: avgHourlyCount },
@@ -248,7 +248,7 @@ export class AnomalyDetectionService {
       }
     });
 
-    return Promise.all(anomalies);
+    return Promise.all(anomalyPromises);
   }
 
   private async detectBudgetAnomalies(): Promise<MLAnomalyDetectionItem[]> {

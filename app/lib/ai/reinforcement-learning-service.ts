@@ -95,7 +95,7 @@ export class ReinforcementLearningService {
       return {
         action: selectedAction,
         confidence,
-        reasoning: this.generateReasoning(agent.agentType, selectedAction, explorationAction),
+        reasoning: this.generateReasoning(agent.agentType as RLAgentType, selectedAction, explorationAction),
         expectedReward: selectedAction.qValue || 0,
         explorationAction
       };

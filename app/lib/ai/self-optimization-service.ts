@@ -78,8 +78,8 @@ export class SelfOptimizationService {
         // Evaluate parameters
         const score = await this.evaluateParameters(
           nextParams,
-          tuning.modelId,
-          tuning.agentId,
+          tuning.modelId || undefined,
+          tuning.agentId || undefined,
           tuning.objective
         );
 
@@ -96,7 +96,7 @@ export class SelfOptimizationService {
           data: {
             iterations: iteration + 1,
             currentParams: nextParams,
-            bestParams,
+            bestParams: bestParams || {},
             bestScore,
             results: {
               searchHistory,
@@ -123,7 +123,7 @@ export class SelfOptimizationService {
 
       // Apply best parameters if improvement is significant
       if (bestScore > this.getBaselineScore(tuning.objective)) {
-        await this.applyOptimizedParameters(tuning, bestParams);
+        await this.applyOptimizedParameters(tuning, bestParams as Record<string, any> || {});
       }
 
     } catch (error) {

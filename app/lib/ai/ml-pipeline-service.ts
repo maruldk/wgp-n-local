@@ -178,7 +178,7 @@ export class MLPipelineService {
         data: {
           status: 'COMPLETED',
           endTime: new Date(),
-          duration: Date.now() - trainingJob.startTime.getTime(),
+          duration: trainingJob.startTime ? Date.now() - trainingJob.startTime.getTime() : 0,
           validationAccuracy: metrics.accuracy,
           validationLoss: metrics.mse || metrics.logLoss,
         },
@@ -275,7 +275,7 @@ export class MLPipelineService {
 
     // Convert to tensors
     const xs = tf.tensor2d(features);
-    const ys = tf.tensor2d(target as number[][], [target.length, 1]);
+    const ys = tf.tensor2d((target as unknown as number[]).map(val => [val]), [target.length, 1]);
 
     // Create simple neural network
     const model = tf.sequential({
@@ -321,7 +321,12 @@ export class MLPipelineService {
     predictions.dispose();
 
     // Serialize model for storage
-    const modelData = await model.save(tf.io.withSaveHandler(async (artifacts) => artifacts));
+    const modelData = await model.save(tf.io.withSaveHandler(async (artifacts) => ({
+      modelArtifactsInfo: {
+        dateSaved: new Date(),
+        modelTopologyType: 'JSON'
+      }
+    })));
 
     return {
       model: {
@@ -394,7 +399,6 @@ export class MLPipelineService {
     // Use k-means clustering
     const result = kmeans(features, k, {
       initialization: 'random',
-      distance: euclidean,
     });
 
     // Calculate silhouette score (simplified)

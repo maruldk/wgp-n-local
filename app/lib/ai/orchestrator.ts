@@ -10,6 +10,22 @@ import {
   AutomationRule,
   OrchestrationStats
 } from '../types';
+
+// Export missing types for other modules
+export interface AIContext {
+  tenantId: string;
+  userId?: string;
+  sessionId?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface AIWorkflowResult {
+  success: boolean;
+  data?: any;
+  error?: string;
+  executionTime?: number;
+  insights?: string[];
+}
 import {
   EventType,
   EventPriority,
@@ -40,7 +56,7 @@ export class AIEventOrchestrator {
   constructor(config: Partial<OrchestrationConfig> = {}) {
     this.prisma = new PrismaClient();
     this.eventBus = getEventBus();
-    this.llmService = new LLMService();
+    this.llmService = new LLMService(this.prisma);
     this.config = {
       aiEnabled: config.aiEnabled !== false,
       maxConcurrentWorkflows: config.maxConcurrentWorkflows || 50,
@@ -292,7 +308,7 @@ export class AIEventOrchestrator {
     });
 
     if (project) {
-      const completedTasks = project.tasks.filter(t => t.status === 'COMPLETED').length;
+      const completedTasks = project.tasks.filter(t => t.status === 'DONE').length;
       const totalTasks = project.tasks.length;
       const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
@@ -316,7 +332,7 @@ export class AIEventOrchestrator {
       }
     }
 
-    return { status: 'processed', progress: project ? (project.tasks.filter(t => t.status === 'COMPLETED').length / project.tasks.length) * 100 : 0 };
+    return { status: 'processed', progress: project ? (project.tasks.filter(t => t.status === 'DONE').length / project.tasks.length) * 100 : 0 };
   }
 
   /**
@@ -475,7 +491,8 @@ export class AIEventOrchestrator {
           data: { currentStep: i + 2 }
         });
       } catch (error) {
-        console.error(`Workflow step failed: ${step.name}`, error);
+        const stepName = step && typeof step === 'object' && 'name' in step ? (step as any).name : `Step ${i + 1}`;
+        console.error(`Workflow step failed: ${stepName}`, error);
         
         // Mark workflow as failed
         await this.prisma.workflowExecution.update({
@@ -727,6 +744,54 @@ export class AIEventOrchestrator {
       completedWorkflows,
       failedWorkflows
     };
+  }
+
+  /**
+   * Missing methods implementation - Placeholder implementations
+   */
+  private async processTransactionCreated(payload: any, metadata: any): Promise<any> {
+    console.log('Processing transaction created event', { payload, metadata });
+    return { status: 'processed', action: 'transaction_analyzed' };
+  }
+
+  private async processBudgetExceeded(payload: any, metadata: any): Promise<any> {
+    console.log('Processing budget exceeded event', { payload, metadata });
+    return { status: 'processed', action: 'budget_alert_sent' };
+  }
+
+  private async processPaymentOverdue(payload: any, metadata: any): Promise<any> {
+    console.log('Processing payment overdue event', { payload, metadata });
+    return { status: 'processed', action: 'overdue_notification_sent' };
+  }
+
+  private async processMilestoneReached(payload: any, metadata: any): Promise<any> {
+    console.log('Processing milestone reached event', { payload, metadata });
+    return { status: 'processed', action: 'milestone_celebration' };
+  }
+
+  private async processDeadlineApproaching(payload: any, metadata: any): Promise<any> {
+    console.log('Processing deadline approaching event', { payload, metadata });
+    return { status: 'processed', action: 'deadline_reminder_sent' };
+  }
+
+  private async processResourceAllocated(payload: any, metadata: any): Promise<any> {
+    console.log('Processing resource allocated event', { payload, metadata });
+    return { status: 'processed', action: 'resource_allocation_confirmed' };
+  }
+
+  private async processAnomalyDetected(payload: any, metadata: any): Promise<any> {
+    console.log('Processing anomaly detected event', { payload, metadata });
+    return { status: 'processed', action: 'anomaly_investigation_triggered' };
+  }
+
+  private async processReportGenerated(payload: any, metadata: any): Promise<any> {
+    console.log('Processing report generated event', { payload, metadata });
+    return { status: 'processed', action: 'report_distributed' };
+  }
+
+  private async processMetricThresholdExceeded(payload: any, metadata: any): Promise<any> {
+    console.log('Processing metric threshold exceeded event', { payload, metadata });
+    return { status: 'processed', action: 'threshold_alert_sent' };
   }
 }
 

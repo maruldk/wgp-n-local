@@ -35,7 +35,7 @@ export class ContinuousLearningService {
           tenantId,
           metadata: {
             startTime: new Date().toISOString(),
-            config: config
+            config: JSON.parse(JSON.stringify(config))
           }
         }
       });
@@ -434,6 +434,24 @@ export class ContinuousLearningService {
         [DriftSeverity.HIGH]: "Gradual parameter adjustment over time",
         [DriftSeverity.MEDIUM]: "Increase sensitivity to new patterns",
         [DriftSeverity.LOW]: "Minor parameter tuning sufficient"
+      },
+      [DriftType.RECURRING]: {
+        [DriftSeverity.CRITICAL]: "Pattern-based retraining with historical data",
+        [DriftSeverity.HIGH]: "Implement cyclical adaptation strategy",
+        [DriftSeverity.MEDIUM]: "Adjust for recurring patterns",
+        [DriftSeverity.LOW]: "Monitor cyclical behavior"
+      },
+      [DriftType.INCREMENTAL]: {
+        [DriftSeverity.CRITICAL]: "Continuous incremental learning required",
+        [DriftSeverity.HIGH]: "Enable continuous adaptation mode",
+        [DriftSeverity.MEDIUM]: "Increase incremental update frequency",
+        [DriftSeverity.LOW]: "Standard incremental updates"
+      },
+      [DriftType.CYCLICAL]: {
+        [DriftSeverity.CRITICAL]: "Seasonal model retraining needed",
+        [DriftSeverity.HIGH]: "Implement seasonal adaptation patterns",
+        [DriftSeverity.MEDIUM]: "Adjust for seasonal variations",
+        [DriftSeverity.LOW]: "Monitor seasonal patterns"
       }
     };
 
@@ -458,7 +476,7 @@ export class ContinuousLearningService {
   private calculatePerformanceTrends(metrics: any[]) {
     if (metrics.length === 0) return [];
 
-    const groupedMetrics = metrics.reduce((acc, metric) => {
+    const groupedMetrics: Record<string, any[]> = metrics.reduce((acc: Record<string, any[]>, metric) => {
       if (!acc[metric.metricName]) acc[metric.metricName] = [];
       acc[metric.metricName].push({
         value: metric.metricValue,
@@ -467,7 +485,7 @@ export class ContinuousLearningService {
       return acc;
     }, {});
 
-    return Object.entries(groupedMetrics).map(([metricName, values]: [string, any[]]) => {
+    return Object.entries(groupedMetrics).map(([metricName, values]) => {
       const sortedValues = values.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
       const trend = this.calculateTrend(sortedValues.map(v => v.value));
       
