@@ -1,10 +1,10 @@
 
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
-
-export const dynamic = 'force-dynamic';
+import { TaskManagementService } from '@/lib/services/task-management-service';
 
 export async function GET(
   request: NextRequest,
@@ -16,51 +16,20 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const task = await prisma.task.findFirst({
-      where: {
-        id: params.id,
-        tenantId: session.user.tenantId,
-      },
-      include: {
-        project: {
-          select: { id: true, name: true },
-        },
-        assignee: {
-          select: { name: true, email: true },
-        },
-        parentTask: {
-          select: { id: true, name: true },
-        },
-        subtasks: {
-          include: {
-            assignee: {
-              select: { name: true, email: true },
-            },
-          },
-        },
-        timesheets: {
-          include: {
-            user: {
-              select: { name: true, email: true },
-            },
-          },
-          orderBy: { date: 'desc' },
-        },
-      },
-    });
+    const task = await TaskManagementService.getTaskById(
+      params.id,
+      session.user.tenantId
+    );
 
     if (!task) {
-      return NextResponse.json(
-        { error: 'Task nicht gefunden' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
-    return NextResponse.json(task);
+    return NextResponse.json({ task });
   } catch (error) {
-    console.error('Get task error:', error);
+    console.error('Error fetching task:', error);
     return NextResponse.json(
-      { error: 'Interner Serverfehler' },
+      { error: 'Failed to fetch task' },
       { status: 500 }
     );
   }
@@ -76,64 +45,42 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const data = await request.json();
-    const {
-      name,
-      description,
-      status,
-      priority,
-      assigneeId,
-      startDate,
-      dueDate,
-      estimatedHours,
+    const body = await request.json();
+    const { 
+      name, 
+      description, 
+      status, 
+      priority, 
+      assigneeId, 
+      startDate, 
+      dueDate, 
+      estimatedHours, 
       actualHours,
-    } = data;
+      parentTaskId
+    } = body;
 
-    const existingTask = await prisma.task.findFirst({
-      where: {
-        id: params.id,
-        tenantId: session.user.tenantId,
-      },
-    });
-
-    if (!existingTask) {
-      return NextResponse.json(
-        { error: 'Task nicht gefunden' },
-        { status: 404 }
-      );
-    }
-
-    const task = await prisma.task.update({
-      where: { id: params.id },
-      data: {
+    const task = await TaskManagementService.updateTask(
+      params.id,
+      session.user.tenantId,
+      {
         name,
         description,
         status,
         priority,
         assigneeId,
-        startDate: startDate ? new Date(startDate) : null,
-        dueDate: dueDate ? new Date(dueDate) : null,
-        estimatedHours,
-        actualHours,
-      },
-      include: {
-        project: {
-          select: { id: true, name: true },
-        },
-        assignee: {
-          select: { name: true, email: true },
-        },
-        parentTask: {
-          select: { id: true, name: true },
-        },
-      },
-    });
+        startDate: startDate ? new Date(startDate) : undefined,
+        dueDate: dueDate ? new Date(dueDate) : undefined,
+        estimatedHours: estimatedHours ? parseFloat(estimatedHours) : undefined,
+        actualHours: actualHours ? parseFloat(actualHours) : undefined,
+        parentTaskId,
+      }
+    );
 
-    return NextResponse.json(task);
+    return NextResponse.json({ task });
   } catch (error) {
-    console.error('Update task error:', error);
+    console.error('Error updating task:', error);
     return NextResponse.json(
-      { error: 'Interner Serverfehler' },
+      { error: error instanceof Error ? error.message : 'Failed to update task' },
       { status: 500 }
     );
   }
@@ -149,29 +96,13 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const existingTask = await prisma.task.findFirst({
-      where: {
-        id: params.id,
-        tenantId: session.user.tenantId,
-      },
-    });
+    await TaskManagementService.deleteTask(params.id, session.user.tenantId);
 
-    if (!existingTask) {
-      return NextResponse.json(
-        { error: 'Task nicht gefunden' },
-        { status: 404 }
-      );
-    }
-
-    await prisma.task.delete({
-      where: { id: params.id },
-    });
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ message: 'Task deleted successfully' });
   } catch (error) {
-    console.error('Delete task error:', error);
+    console.error('Error deleting task:', error);
     return NextResponse.json(
-      { error: 'Interner Serverfehler' },
+      { error: 'Failed to delete task' },
       { status: 500 }
     );
   }

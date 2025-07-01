@@ -1,10 +1,10 @@
 
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
-
-export const dynamic = 'force-dynamic';
+import { ProjectManagementService } from '@/lib/services/project-management-service';
 
 export async function GET(
   request: NextRequest,
@@ -16,60 +16,20 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const project = await prisma.project.findFirst({
-      where: {
-        id: params.id,
-        tenantId: session.user.tenantId,
-      },
-      include: {
-        manager: {
-          select: { name: true, email: true },
-        },
-        members: {
-          include: {
-            user: {
-              select: { name: true, email: true },
-            },
-          },
-        },
-        tasks: {
-          include: {
-            assignee: {
-              select: { name: true, email: true },
-            },
-          },
-          orderBy: { createdAt: 'asc' },
-        },
-        milestones: {
-          orderBy: { dueDate: 'asc' },
-        },
-        timesheets: {
-          include: {
-            user: {
-              select: { name: true, email: true },
-            },
-            task: {
-              select: { name: true },
-            },
-          },
-          orderBy: { date: 'desc' },
-          take: 10,
-        },
-      },
-    });
+    const project = await ProjectManagementService.getProjectById(
+      params.id,
+      session.user.tenantId
+    );
 
     if (!project) {
-      return NextResponse.json(
-        { error: 'Projekt nicht gefunden' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    return NextResponse.json(project);
+    return NextResponse.json({ project });
   } catch (error) {
-    console.error('Get project error:', error);
+    console.error('Error fetching project:', error);
     return NextResponse.json(
-      { error: 'Interner Serverfehler' },
+      { error: 'Failed to fetch project' },
       { status: 500 }
     );
   }
@@ -85,90 +45,28 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const data = await request.json();
-    const {
-      name,
-      description,
-      status,
-      startDate,
-      endDate,
-      budget,
-      managerId,
-    } = data;
+    const body = await request.json();
+    const { name, description, status, startDate, endDate, budget, managerId } = body;
 
-    const existingProject = await prisma.project.findFirst({
-      where: {
-        id: params.id,
-        tenantId: session.user.tenantId,
-      },
-    });
-
-    if (!existingProject) {
-      return NextResponse.json(
-        { error: 'Projekt nicht gefunden' },
-        { status: 404 }
-      );
-    }
-
-    // Verify manager if changed
-    if (managerId && managerId !== existingProject.managerId) {
-      const manager = await prisma.user.findFirst({
-        where: {
-          id: managerId,
-          tenantId: session.user.tenantId,
-        },
-      });
-
-      if (!manager) {
-        return NextResponse.json(
-          { error: 'Manager nicht gefunden' },
-          { status: 404 }
-        );
-      }
-    }
-
-    const project = await prisma.project.update({
-      where: { id: params.id },
-      data: {
+    const project = await ProjectManagementService.updateProject(
+      params.id,
+      session.user.tenantId,
+      {
         name,
         description,
         status,
-        startDate: startDate ? new Date(startDate) : null,
-        endDate: endDate ? new Date(endDate) : null,
-        budget,
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined,
+        budget: budget ? parseFloat(budget) : undefined,
         managerId,
-      },
-      include: {
-        manager: {
-          select: { name: true, email: true },
-        },
-        members: {
-          include: {
-            user: {
-              select: { name: true, email: true },
-            },
-          },
-        },
-      },
-    });
+      }
+    );
 
-    // Create audit log
-    await prisma.auditLog.create({
-      data: {
-        userId: session.user.id,
-        action: 'PROJECT_UPDATED',
-        resource: 'PROJECT',
-        resourceId: params.id,
-        details: { name: project.name },
-        tenantId: session.user.tenantId,
-      },
-    });
-
-    return NextResponse.json(project);
+    return NextResponse.json({ project });
   } catch (error) {
-    console.error('Update project error:', error);
+    console.error('Error updating project:', error);
     return NextResponse.json(
-      { error: 'Interner Serverfehler' },
+      { error: error instanceof Error ? error.message : 'Failed to update project' },
       { status: 500 }
     );
   }
@@ -184,41 +82,13 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const existingProject = await prisma.project.findFirst({
-      where: {
-        id: params.id,
-        tenantId: session.user.tenantId,
-      },
-    });
+    await ProjectManagementService.deleteProject(params.id, session.user.tenantId);
 
-    if (!existingProject) {
-      return NextResponse.json(
-        { error: 'Projekt nicht gefunden' },
-        { status: 404 }
-      );
-    }
-
-    await prisma.project.delete({
-      where: { id: params.id },
-    });
-
-    // Create audit log
-    await prisma.auditLog.create({
-      data: {
-        userId: session.user.id,
-        action: 'PROJECT_DELETED',
-        resource: 'PROJECT',
-        resourceId: params.id,
-        details: { name: existingProject.name },
-        tenantId: session.user.tenantId,
-      },
-    });
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ message: 'Project deleted successfully' });
   } catch (error) {
-    console.error('Delete project error:', error);
+    console.error('Error deleting project:', error);
     return NextResponse.json(
-      { error: 'Interner Serverfehler' },
+      { error: 'Failed to delete project' },
       { status: 500 }
     );
   }

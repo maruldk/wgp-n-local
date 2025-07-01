@@ -80,6 +80,15 @@ model User {
   projectMemberships ProjectMember[]
   timesheets       Timesheet[]
   
+  // SPRINT 2.4 - wePROJECT Core Features relations
+  createdProjectTemplates ProjectTemplate[] @relation("ProjectTemplateCreator")
+  taskComments       TaskComment[]
+  projectFileUploads ProjectFile[]        @relation("ProjectFileUploads")
+  projectActivities  ProjectActivity[]
+  projectResourceAllocations ProjectResourceAllocation[] @relation("ProjectResourceAllocations")
+  ownedProjectRisks  ProjectRisk[]        @relation("ProjectRiskOwner")
+  taskTimeLogs       TaskTimeLog[]        @relation("TaskTimeLogs")
+  
   // KI-ORCHESTRATOR relations
   aiDecisions      AIDecision[]
   aiInsights       AIInsight[]
@@ -172,6 +181,16 @@ model Tenant {
   milestones    Milestone[]
   projectMembers ProjectMember[]
   timesheets    Timesheet[]
+  
+  // SPRINT 2.4 - wePROJECT Core Features relations
+  projectTemplates       ProjectTemplate[]
+  taskComments          TaskComment[]
+  taskDependencies      TaskDependency[]
+  projectFiles          ProjectFile[]
+  projectActivities     ProjectActivity[]
+  projectResourceAllocations ProjectResourceAllocation[]
+  projectRisks          ProjectRisk[]
+  taskTimeLogs          TaskTimeLog[]
   
   // KI-ORCHESTRATOR relations
   aiDecisions   AIDecision[]
@@ -706,6 +725,12 @@ model Project {
   milestones Milestone[]
   timesheets Timesheet[]
   expenses   Expense[]
+  
+  // SPRINT 2.4 - wePROJECT Core Features relations
+  projectFiles          ProjectFile[]
+  projectActivities     ProjectActivity[]
+  projectResourceAllocations ProjectResourceAllocation[]
+  projectRisks          ProjectRisk[]
 
   @@map("projects")
 }
@@ -733,6 +758,12 @@ model Task {
   subtasks   Task[]      @relation("TaskSubtasks")
   tenant     Tenant      @relation(fields: [tenantId], references: [id])
   timesheets Timesheet[]
+  
+  // SPRINT 2.4 - wePROJECT Core Features relations
+  taskComments     TaskComment[]
+  taskDependencies TaskDependency[] @relation("TaskDependencies")
+  taskDependents   TaskDependency[] @relation("TaskDependents")
+  taskTimeLogs     TaskTimeLog[]
 
   @@map("tasks")
 }
@@ -788,6 +819,180 @@ model Timesheet {
   tenant  Tenant   @relation(fields: [tenantId], references: [id])
 
   @@map("timesheets")
+}
+
+// SPRINT 2.4 - wePROJECT Core Features Extensions
+
+model ProjectTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String   // SOFTWARE, MARKETING, RESEARCH, CONSULTING
+  isPublic    Boolean  @default(false)
+  estimatedDuration Int? // in days
+  defaultBudget Float?
+  config      Json     // Template configuration
+  tenantId    String
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant        @relation(fields: [tenantId], references: [id])
+  creator     User          @relation("ProjectTemplateCreator", fields: [createdBy], references: [id])
+  taskTemplates TaskTemplate[]
+
+  @@map("project_templates")
+}
+
+model TaskTemplate {
+  id              String   @id @default(cuid())
+  projectTemplateId String
+  name            String
+  description     String?
+  estimatedHours  Float?
+  priority        TaskPriority @default(MEDIUM)
+  assigneeRole    String?  // Role instead of specific user
+  dependencies    String[] // Array of task template names this depends on
+  orderIndex      Int      @default(0)
+
+  projectTemplate ProjectTemplate @relation(fields: [projectTemplateId], references: [id], onDelete: Cascade)
+
+  @@map("task_templates")
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  content   String
+  isInternal Boolean @default(false) // Internal team comment vs client-visible
+  tenantId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@map("task_comments")
+}
+
+model TaskDependency {
+  id              String         @id @default(cuid())
+  taskId          String         // Dependent task
+  dependsOnTaskId String         // Task it depends on
+  dependencyType  DependencyType @default(FINISH_TO_START)
+  lag             Int            @default(0) // Days lag/lead
+  tenantId        String
+
+  task          Task   @relation("TaskDependencies", fields: [taskId], references: [id], onDelete: Cascade)
+  dependsOnTask Task   @relation("TaskDependents", fields: [dependsOnTaskId], references: [id], onDelete: Cascade)
+  tenant        Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([taskId, dependsOnTaskId])
+  @@map("task_dependencies")
+}
+
+model ProjectFile {
+  id          String   @id @default(cuid())
+  projectId   String
+  name        String
+  originalName String
+  fileType    String   // PDF, DOC, XLS, IMG, etc.
+  fileSize    Int      // in bytes
+  fileUrl     String
+  uploadedBy  String
+  tenantId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploadedByUser User @relation("ProjectFileUploads", fields: [uploadedBy], references: [id])
+  tenant     Tenant  @relation(fields: [tenantId], references: [id])
+
+  @@map("project_files")
+}
+
+model ProjectActivity {
+  id           String       @id @default(cuid())
+  projectId    String
+  userId       String?
+  activityType ActivityType
+  description  String
+  metadata     Json?        // Additional context data
+  entityType   String?      // TASK, MILESTONE, FILE, MEMBER
+  entityId     String?      // ID of the related entity
+  tenantId     String
+  createdAt    DateTime     @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id])
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+
+  @@index([projectId, createdAt])
+  @@map("project_activities")
+}
+
+
+
+model ProjectResourceAllocation {
+  id           String   @id @default(cuid())
+  projectId    String
+  userId       String
+  allocatedHours Float   // Hours per week allocated
+  startDate    DateTime
+  endDate      DateTime?
+  role         String?
+  hourlyRate   Float?   // For budget calculations
+  tenantId     String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation("ProjectResourceAllocations", fields: [userId], references: [id])
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+
+  @@unique([projectId, userId, startDate])
+  @@map("project_resource_allocations")
+}
+
+model ProjectRisk {
+  id           String     @id @default(cuid())
+  projectId    String
+  title        String
+  description  String
+  probability  RiskLevel  // LOW, MEDIUM, HIGH
+  impact       RiskLevel
+  riskScore    Float      // Calculated: probability * impact
+  mitigation   String?
+  owner        String?    // User responsible for monitoring
+  status       RiskStatus @default(IDENTIFIED)
+  tenantId     String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  ownerUser User? @relation("ProjectRiskOwner", fields: [owner], references: [id])
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+
+  @@map("project_risks")
+}
+
+model TaskTimeLog {
+  id          String   @id @default(cuid())
+  taskId      String
+  userId      String
+  startTime   DateTime
+  endTime     DateTime?
+  description String?
+  tenantId    String
+  createdAt   DateTime @default(now())
+
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user   User   @relation("TaskTimeLogs", fields: [userId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@map("task_time_logs")
 }
 
 enum UserRole {
@@ -917,6 +1122,75 @@ enum ReportStatus {
   COMPLETED
   FAILED
   CANCELLED
+}
+
+enum DependencyType {
+  FINISH_TO_START
+  START_TO_START
+  FINISH_TO_FINISH
+  START_TO_FINISH
+}
+
+enum ActivityType {
+  PROJECT_CREATED
+  PROJECT_UPDATED
+  PROJECT_COMPLETED
+  TASK_CREATED
+  TASK_UPDATED
+  TASK_ASSIGNED
+  TASK_COMPLETED
+  MILESTONE_CREATED
+  MILESTONE_COMPLETED
+  MEMBER_ADDED
+  MEMBER_REMOVED
+  FILE_UPLOADED
+  FILE_DELETED
+  COMMENT_ADDED
+  RISK_IDENTIFIED
+  RISK_MITIGATED
+  BUDGET_UPDATED
+  TIMELINE_CHANGED
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  AI_INSIGHT
+  WORKFLOW_UPDATE
+  BUSINESS_ALERT
+  SYSTEM_NOTIFICATION
+}
+
+enum ProjectNotificationType {
+  TASK_ASSIGNED
+  TASK_DUE_SOON
+  TASK_OVERDUE
+  TASK_COMPLETED
+  PROJECT_UPDATE
+  MILESTONE_DUE
+  BUDGET_ALERT
+  MEMBER_ADDED
+  COMMENT_MENTION
+  FILE_SHARED
+  RISK_ALERT
+  APPROVAL_NEEDED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum RiskStatus {
+  IDENTIFIED
+  ASSESSING
+  MITIGATING
+  MONITORING
+  CLOSED
 }
 
 // KI-ORCHESTRATOR Models
@@ -2317,7 +2591,7 @@ enum StepStatus {
   RETRYING
 }
 
-enum NotificationType {
+enum SystemNotificationType {
   INFO
   SUCCESS
   WARNING

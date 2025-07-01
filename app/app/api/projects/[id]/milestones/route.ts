@@ -1,10 +1,12 @@
 
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { PrismaClient } from '@prisma/client';
 
-export const dynamic = 'force-dynamic';
+const db = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
@@ -16,22 +18,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify project exists and belongs to tenant
-    const project = await prisma.project.findFirst({
-      where: {
-        id: params.id,
-        tenantId: session.user.tenantId,
-      },
-    });
-
-    if (!project) {
-      return NextResponse.json(
-        { error: 'Projekt nicht gefunden' },
-        { status: 404 }
-      );
-    }
-
-    const milestones = await prisma.milestone.findMany({
+    const milestones = await db.milestone.findMany({
       where: {
         projectId: params.id,
         tenantId: session.user.tenantId,
@@ -41,9 +28,9 @@ export async function GET(
 
     return NextResponse.json({ milestones });
   } catch (error) {
-    console.error('Get project milestones error:', error);
+    console.error('Error fetching milestones:', error);
     return NextResponse.json(
-      { error: 'Interner Serverfehler' },
+      { error: 'Failed to fetch milestones' },
       { status: 500 }
     );
   }
@@ -59,47 +46,31 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify project exists and belongs to tenant
-    const project = await prisma.project.findFirst({
-      where: {
-        id: params.id,
-        tenantId: session.user.tenantId,
-      },
-    });
-
-    if (!project) {
-      return NextResponse.json(
-        { error: 'Projekt nicht gefunden' },
-        { status: 404 }
-      );
-    }
-
-    const data = await request.json();
-    const { name, description, dueDate, isCompleted = false } = data;
+    const body = await request.json();
+    const { name, description, dueDate } = body;
 
     if (!name || !dueDate) {
       return NextResponse.json(
-        { error: 'Name und Fälligkeitsdatum sind erforderlich' },
+        { error: 'Name and due date are required' },
         { status: 400 }
       );
     }
 
-    const milestone = await prisma.milestone.create({
+    const milestone = await db.milestone.create({
       data: {
-        projectId: params.id,
         name,
         description,
         dueDate: new Date(dueDate),
-        isCompleted,
+        projectId: params.id,
         tenantId: session.user.tenantId,
       },
     });
 
-    return NextResponse.json(milestone, { status: 201 });
+    return NextResponse.json({ milestone }, { status: 201 });
   } catch (error) {
-    console.error('Create project milestone error:', error);
+    console.error('Error creating milestone:', error);
     return NextResponse.json(
-      { error: 'Interner Serverfehler' },
+      { error: error instanceof Error ? error.message : 'Failed to create milestone' },
       { status: 500 }
     );
   }
