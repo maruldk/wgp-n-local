@@ -306,7 +306,7 @@ export class SecurityAuditService {
       SecurityAction.DATA_EXPORT,
       SecurityAction.PASSWORD_RESET
     ];
-    factors.privilegedAction = privilegedActions.includes(event.action);
+    factors.privilegedAction = (privilegedActions as SecurityAction[]).includes(event.action);
     if (factors.privilegedAction) riskScore += 0.2;
 
     // Specific action risk scoring

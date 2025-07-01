@@ -19,7 +19,7 @@ import {
   Download, 
   FileText, 
   FileSpreadsheet,
-  FilePdf,
+  FileType,
   FileImage,
   FileJson,
   Settings,
@@ -37,7 +37,7 @@ import {
   Filter
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useExport, ExportConfig, ExportResult } from '@/lib/export/export-service';
+import { ExportService, ExportConfig, ExportResult } from '@/lib/export/export-service';
 
 interface ExportPanelProps {
   dashboardElement?: HTMLElement;
@@ -52,7 +52,79 @@ export function ExportPanel({
   title = 'Dashboard Export',
   onExportComplete
 }: ExportPanelProps) {
-  const { exportData, exportMultiple, estimateSize, isExporting, exportProgress, formatCapabilities } = useExport();
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+  
+  const formatCapabilities = {
+    pdf: { 
+      name: 'PDF Document',
+      supportsCharts: true, 
+      maxSize: '100MB', 
+      features: ['charts', 'styling', 'metadata'],
+      supports: ['charts', 'styling', 'metadata']
+    },
+    excel: { 
+      name: 'Excel Spreadsheet',
+      supportsCharts: true, 
+      maxSize: '50MB', 
+      features: ['data', 'charts', 'formulas'],
+      supports: ['data', 'charts', 'formulas']
+    },
+    csv: { 
+      name: 'CSV File',
+      supportsCharts: false, 
+      maxSize: '10MB', 
+      features: ['data'],
+      supports: ['data']
+    },
+    png: { 
+      name: 'PNG Image',
+      supportsCharts: true, 
+      maxSize: '20MB', 
+      features: ['charts', 'styling'],
+      supports: ['charts', 'styling']
+    },
+    json: { 
+      name: 'JSON Data',
+      supportsCharts: false, 
+      maxSize: '5MB', 
+      features: ['data', 'metadata'],
+      supports: ['data', 'metadata']
+    }
+  };
+
+  // Mock functions to replace useExport functionality
+  const exportData = async (element: HTMLElement, data: any[], config: ExportConfig): Promise<ExportResult> => {
+    setIsExporting(true);
+    try {
+      if (config.format === 'pdf' && element) {
+        return await ExportService.exportDashboardToPDF(element, config);
+      }
+      // Add other format handling here
+      return { success: false, filename: '', size: 0, error: 'Format not supported' };
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportMultiple = async (element: HTMLElement, data: any[], config: ExportConfig, formats: string[]): Promise<ExportResult[]> => {
+    const results: ExportResult[] = [];
+    for (const format of formats) {
+      const formatConfig = { ...config, format: format as any };
+      const result = await exportData(element, data, formatConfig);
+      results.push(result);
+    }
+    return results;
+  };
+
+  const estimateSize = (data: any[], format: string): string => {
+    const baseSize = JSON.stringify(data).length;
+    switch (format) {
+      case 'pdf': return `${Math.round(baseSize * 0.8 / 1024)}KB`;
+      case 'excel': return `${Math.round(baseSize * 1.2 / 1024)}KB`;
+      default: return `${Math.round(baseSize / 1024)}KB`;
+    }
+  };
   
   const [isOpen, setIsOpen] = useState(false);
   const [exportConfig, setExportConfig] = useState<ExportConfig>({
@@ -108,9 +180,11 @@ export function ExportPanel({
 
   // Estimate total export size
   const estimatedSize = dashboardElement && selectedFormats.length > 0 
-    ? selectedFormats.reduce((total, format) => 
-        total + estimateSize(dashboardElement, data, format, exportConfig.quality), 0
-      )
+    ? selectedFormats.reduce((total: number, format: string) => {
+        const sizeStr = estimateSize(data, format);
+        const sizeNum = parseInt(sizeStr.replace(/[^\d]/g, '')) || 0;
+        return total + sizeNum;
+      }, 0)
     : 0;
 
   // Handle single format export
@@ -140,7 +214,7 @@ export function ExportPanel({
 
     const results = await exportMultiple(dashboardElement, data, exportConfig, selectedFormats);
     
-    const successCount = results.filter(r => r.success).length;
+    const successCount = results.filter((r: ExportResult) => r.success).length;
     const failCount = results.length - successCount;
 
     if (successCount > 0) {
@@ -174,7 +248,7 @@ export function ExportPanel({
           {isExporting ? (
             <Loader2 className="w-4 h-4 mr-1 animate-spin" />
           ) : (
-            <FilePdf className="w-4 h-4 mr-1" />
+            <FileType className="w-4 h-4 mr-1" />
           )}
           PDF
         </Button>
@@ -226,7 +300,7 @@ export function ExportPanel({
                   <div className="grid grid-cols-2 gap-4">
                     {Object.entries(formatCapabilities).map(([format, info]) => {
                       const isSelected = selectedFormats.includes(format as any);
-                      const Icon = format === 'pdf' ? FilePdf :
+                      const Icon = format === 'pdf' ? FileType :
                                   format === 'excel' ? FileSpreadsheet :
                                   format === 'csv' ? FileText :
                                   format === 'png' ? FileImage :

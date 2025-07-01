@@ -453,7 +453,20 @@ const options = {
   ],
 };
 
-export const swaggerSpec = swaggerJSDoc(options);
+export interface SwaggerSpecType {
+  openapi: string;
+  info: {
+    title: string;
+    version: string;
+    description: string;
+    [key: string]: any;
+  };
+  servers: any[];
+  components: any;
+  [key: string]: any;
+}
+
+export const swaggerSpec = swaggerJSDoc(options) as SwaggerSpecType;
 
 // Type definitions for API responses
 export interface APIResponse<T = any> {

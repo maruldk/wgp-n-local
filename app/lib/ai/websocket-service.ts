@@ -198,7 +198,7 @@ export class WebSocketService {
           tenantId: notification.tenantId,
           userId: notification.userId,
           channel: notification.channel,
-          isPersistent: notification.isPersistent !== false
+          isPersistent: notification.isPersistent ?? true
         }
       });
     }

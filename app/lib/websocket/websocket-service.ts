@@ -1,5 +1,6 @@
 
 import { EventEmitter } from 'events';
+import { useEffect, useCallback } from 'react';
 
 export interface WebSocketMessage {
   type: string;
@@ -363,5 +364,45 @@ export const websocketUtils = {
     ws.requestWidgetData(widgetId, config);
   }
 };
+
+// React Hook for WebSocket usage
+export function useWebSocket() {
+  const ws = WebSocketService.getInstance();
+
+  useEffect(() => {
+    // Auto-connect when hook is used
+    if (typeof window !== 'undefined') {
+      ws.connect().catch(console.error);
+    }
+
+    return () => {
+      // Cleanup handled by WebSocketService singleton
+    };
+  }, []);
+
+  const subscribe = useCallback((eventType: string, callback: (data: any) => void) => {
+    ws.on(eventType, callback);
+    
+    // Return unsubscribe function
+    return () => {
+      ws.off(eventType, callback);
+    };
+  }, [ws]);
+
+  const sendMessage = useCallback((message: WebSocketMessage) => {
+    ws.send(message.type, message.payload, message.requestId);
+  }, [ws]);
+
+  const requestWidgetData = useCallback((widgetId: string, config: any) => {
+    ws.requestWidgetData(widgetId, config);
+  }, [ws]);
+
+  return {
+    subscribe,
+    sendMessage,
+    requestWidgetData,
+    isConnected: ws.isConnected?.() ?? false
+  };
+}
 
 export default WebSocketService;

@@ -69,6 +69,10 @@ model User {
   transactions     Transaction[]
   budgets          Budget[]
   datevExports     DatevExport[]
+  expenses         Expense[]
+  expenseApprovals ExpenseApproval[]
+  approvedExpenses Expense[]        @relation("ExpenseApprovals")
+  financialReports FinancialReport[]
   
   // wePROJECT relations
   managedProjects  Project[]
@@ -147,12 +151,20 @@ model Tenant {
   metrics       Metric[]
   
   // weFINANCE relations
-  invoices      Invoice[]
-  invoiceItems  InvoiceItem[]
-  transactions  Transaction[]
-  budgets       Budget[]
-  taxCategories TaxCategory[]
-  datevExports  DatevExport[]
+  invoices         Invoice[]
+  invoiceItems     InvoiceItem[]
+  transactions     Transaction[]
+  budgets          Budget[]
+  taxCategories    TaxCategory[]
+  datevExports     DatevExport[]
+  expenses         Expense[]
+  expenseCategories ExpenseCategory[]
+  expenseApprovals ExpenseApproval[]
+  budgetCategories BudgetCategory[]
+  budgetAllocations BudgetAllocation[]
+  financialReports FinancialReport[]
+  financialKPIs    FinancialKPI[]
+  cashFlowPredictions CashFlowPrediction[]
   
   // wePROJECT relations
   projects      Project[]
@@ -457,8 +469,10 @@ model Budget {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
-  user   User   @relation(fields: [userId], references: [id])
+  tenant      Tenant             @relation(fields: [tenantId], references: [id])
+  user        User               @relation(fields: [userId], references: [id])
+  expenses    Expense[]
+  allocations BudgetAllocation[]
 
   @@map("budgets")
 }
@@ -491,6 +505,186 @@ model DatevExport {
   @@map("datev_exports")
 }
 
+// SPRINT 2.3 - weFINANCE Core Features Extensions
+
+model ExpenseCategory {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  color       String?  // Hex color for UI
+  icon        String?  // Icon name
+  isActive    Boolean  @default(true)
+  tenantId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  expenses Expense[]
+
+  @@unique([name, tenantId])
+  @@map("expense_categories")
+}
+
+model Expense {
+  id               String        @id @default(cuid())
+  title            String
+  description      String?
+  amount           Float
+  date             DateTime
+  categoryId       String?
+  currency         String        @default("EUR")
+  status           ExpenseStatus @default(PENDING)
+  receiptUrl       String?
+  receiptFilename  String?
+  merchantName     String?
+  notes            String?
+  budgetId         String?
+  projectId        String?
+  isRecurring      Boolean       @default(false)
+  recurringType    RecurringType?
+  recurringEndDate DateTime?
+  parentExpenseId  String?       // For recurring expenses
+  tenantId         String
+  userId           String        // Who created the expense
+  approvedById     String?       // Who approved it
+  approvedAt       DateTime?
+  rejectedReason   String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  category        ExpenseCategory? @relation(fields: [categoryId], references: [id])
+  budget          Budget?          @relation(fields: [budgetId], references: [id])
+  project         Project?         @relation(fields: [projectId], references: [id])
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  user            User             @relation(fields: [userId], references: [id])
+  approvedBy      User?            @relation("ExpenseApprovals", fields: [approvedById], references: [id])
+  parentExpense   Expense?         @relation("RecurringExpenses", fields: [parentExpenseId], references: [id])
+  childExpenses   Expense[]        @relation("RecurringExpenses")
+  approvalHistory ExpenseApproval[]
+
+  @@index([tenantId, status])
+  @@index([userId, date])
+  @@index([categoryId, date])
+  @@map("expenses")
+}
+
+model ExpenseApproval {
+  id         String        @id @default(cuid())
+  expenseId  String
+  status     ExpenseStatus
+  comment    String?
+  userId     String
+  tenantId   String
+  createdAt  DateTime      @default(now())
+
+  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+
+  @@map("expense_approvals")
+}
+
+model BudgetCategory {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  color       String?
+  parentId    String?  // For hierarchical categories
+  tenantId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id])
+  parent         BudgetCategory? @relation("BudgetCategoryHierarchy", fields: [parentId], references: [id])
+  children       BudgetCategory[] @relation("BudgetCategoryHierarchy")
+  budgetAllocations BudgetAllocation[]
+
+  @@unique([name, tenantId])
+  @@map("budget_categories")
+}
+
+model BudgetAllocation {
+  id               String   @id @default(cuid())
+  budgetId         String
+  categoryId       String
+  allocatedAmount  Float
+  spentAmount      Float    @default(0)
+  forecastAmount   Float?   // AI-generated forecast
+  alertThreshold   Float?   // Alert when spent reaches this %
+  tenantId         String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  budget   Budget         @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  category BudgetCategory @relation(fields: [categoryId], references: [id])
+  tenant   Tenant         @relation(fields: [tenantId], references: [id])
+
+  @@unique([budgetId, categoryId])
+  @@map("budget_allocations")
+}
+
+model FinancialReport {
+  id          String           @id @default(cuid())
+  name        String
+  type        FinancialReportType
+  period      ReportPeriod
+  startDate   DateTime
+  endDate     DateTime
+  data        Json             // Report data structure
+  generatedBy String           // USER or AI
+  templateId  String?          // If generated from template
+  filters     Json?            // Applied filters
+  status      ReportStatus     @default(GENERATING)
+  fileUrl     String?          // Generated PDF/Excel file
+  tenantId    String
+  userId      String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, type])
+  @@index([startDate, endDate])
+  @@map("financial_reports")
+}
+
+model FinancialKPI {
+  id          String       @id @default(cuid())
+  name        String       // REVENUE, PROFIT_MARGIN, CASH_FLOW, etc.
+  value       Float
+  target      Float?
+  unit        String       // EUR, PERCENT, COUNT
+  period      ReportPeriod
+  date        DateTime
+  metadata    Json?        // Additional context data
+  tenantId    String
+  calculatedAt DateTime    @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([name, period, date, tenantId])
+  @@index([tenantId, name, date])
+  @@map("financial_kpis")
+}
+
+model CashFlowPrediction {
+  id            String   @id @default(cuid())
+  predictionDate DateTime
+  predictedInflow  Float
+  predictedOutflow Float
+  netCashFlow   Float
+  confidence    Float    // 0-1 confidence score
+  modelVersion  String
+  tenantId      String
+  createdAt     DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, predictionDate])
+  @@map("cash_flow_predictions")
+}
+
 // wePROJECT Models
 model Project {
   id          String        @id @default(cuid())
@@ -505,12 +699,13 @@ model Project {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  tenant    Tenant          @relation(fields: [tenantId], references: [id])
-  manager   User            @relation(fields: [managerId], references: [id])
-  tasks     Task[]
-  members   ProjectMember[]
+  tenant     Tenant          @relation(fields: [tenantId], references: [id])
+  manager    User            @relation(fields: [managerId], references: [id])
+  tasks      Task[]
+  members    ProjectMember[]
   milestones Milestone[]
   timesheets Timesheet[]
+  expenses   Expense[]
 
   @@map("projects")
 }
@@ -680,6 +875,48 @@ enum ReportType {
   FINANCIAL
   PROJECT
   CUSTOM
+}
+
+enum ExpenseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+  CANCELLED
+}
+
+enum RecurringType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum FinancialReportType {
+  PROFIT_LOSS
+  CASH_FLOW
+  BALANCE_SHEET
+  EXPENSE_ANALYSIS
+  BUDGET_PERFORMANCE
+  TAX_REPORT
+  CUSTOM
+}
+
+enum ReportPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  CUSTOM
+}
+
+enum ReportStatus {
+  GENERATING
+  COMPLETED
+  FAILED
+  CANCELLED
 }
 
 // KI-ORCHESTRATOR Models

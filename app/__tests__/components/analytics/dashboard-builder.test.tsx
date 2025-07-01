@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react';
-import { screen } from '@testing-library/dom';
+import { render } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { DashboardBuilder } from '@/components/analytics/dashboard-builder';
 

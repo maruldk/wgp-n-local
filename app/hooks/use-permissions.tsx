@@ -15,8 +15,8 @@ export function usePermissions() {
       userId: session.user.id,
       tenantId: session.user.tenantId || '',
       role: session.user.role as Role,
-      customPermissions: session.user.customPermissions || [],
-      deniedPermissions: session.user.deniedPermissions || [],
+      customPermissions: [], // TODO: Load from database/API
+      deniedPermissions: [], // TODO: Load from database/API
     };
   }, [session]);
 

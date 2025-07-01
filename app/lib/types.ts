@@ -1346,6 +1346,7 @@ export interface AdaptiveLearningRule {
 // AutoML Types for Self-Learning
 export interface AutoMLExperimentConfig {
   name: string;
+  description?: string;
   experimentType: AutoMLType;
   dataset: Record<string, any>;
   objective: string;

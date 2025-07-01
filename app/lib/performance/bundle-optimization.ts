@@ -34,7 +34,7 @@ export class BundleOptimizer {
     if (typeof window !== 'undefined') {
       // Preload charts on user interaction
       const preloadCharts = () => {
-        DYNAMIC_IMPORTS.Charts();
+        DYNAMIC_IMPORTS.CustomChartBuilder();
         document.removeEventListener('mouseenter', preloadCharts);
         document.removeEventListener('scroll', preloadCharts);
       };
@@ -71,7 +71,7 @@ export class BundleOptimizer {
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
           if (entry.name.includes('chunk') || entry.name.includes('bundle')) {
-            console.log(`📦 Bundle loaded: ${entry.name} (${entry.transferSize} bytes)`);
+            console.log(`📦 Bundle loaded: ${entry.name} (${(entry as PerformanceResourceTiming).transferSize || 0} bytes)`);
           }
         }
       });

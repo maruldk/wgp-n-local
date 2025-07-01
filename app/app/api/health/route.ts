@@ -110,7 +110,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     };
 
     const dependencies = {
-      external: getResultFromSettled(externalDeps) || [],
+      external: Array.isArray(getResultFromSettled(externalDeps)) 
+        ? getResultFromSettled(externalDeps) as ExternalDependency[]
+        : [],
     };
 
     // Determine overall status
@@ -230,10 +232,15 @@ async function checkAPI(): Promise<HealthCheckResult> {
   
   try {
     // Test internal API endpoint
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
     const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/docs`, {
       method: 'HEAD',
-      timeout: 5000,
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
     
     const responseTime = Date.now() - start;
     
@@ -337,10 +344,15 @@ async function checkExternalDependencies(): Promise<ExternalDependency[]> {
     dependencies.map(async (dep) => {
       const start = Date.now();
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
         const response = await fetch(dep.url, {
           method: 'HEAD',
-          timeout: 5000,
+          signal: controller.signal,
         });
+        
+        clearTimeout(timeoutId);
         
         return {
           name: dep.name,

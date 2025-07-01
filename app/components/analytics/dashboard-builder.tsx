@@ -27,7 +27,7 @@ import {
   Eye,
   EyeOff,
   Move,
-  Resize,
+  Expand,
   BarChart3,
   LineChart,
   PieChart,
@@ -42,6 +42,7 @@ import {
   Clock,
   Zap,
   Database,
+  X,
   Filter,
   Download,
   Upload,
@@ -50,11 +51,12 @@ import {
   Palette,
   Monitor,
   Smartphone,
-  Tablet
+  Tablet,
+  FileText
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const ResponsiveGridLayout = WidthProvider(Responsive);
+const ResponsiveGridLayout = WidthProvider(Responsive) as any;
 
 // Widget types and configurations
 export interface WidgetConfig {
@@ -169,7 +171,7 @@ const WIDGET_LIBRARY = [
   {
     type: WidgetType.TEXT,
     name: 'Text Widget',
-    icon: Type,
+    icon: FileText,
     description: 'Custom text content',
     defaultSize: { w: 4, h: 2 },
     category: 'Content'

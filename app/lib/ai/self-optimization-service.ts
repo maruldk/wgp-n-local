@@ -78,9 +78,9 @@ export class SelfOptimizationService {
         // Evaluate parameters
         const score = await this.evaluateParameters(
           nextParams,
+          tuning.objective,
           tuning.modelId || undefined,
-          tuning.agentId || undefined,
-          tuning.objective
+          tuning.agentId || undefined
         );
 
         searchHistory.push({ params: nextParams, score });
@@ -238,12 +238,13 @@ export class SelfOptimizationService {
     let bestAvg = -Infinity;
 
     for (const [value, scores] of Object.entries(valuePerformance)) {
-      if (scores.length === 0) {
+      const scoreArray = scores as number[];
+      if (scoreArray.length === 0) {
         // Unexplored values get high priority
         return value;
       }
       
-      const avg = scores.reduce((a: number, b: number) => a + b, 0) / scores.length;
+      const avg = scoreArray.reduce((a: number, b: number) => a + b, 0) / scoreArray.length;
       const exploration = Math.random() * 0.1; // Small exploration bonus
       
       if (avg + exploration > bestAvg) {
@@ -356,9 +357,9 @@ export class SelfOptimizationService {
    */
   private async evaluateParameters(
     params: Record<string, any>,
+    objective: string,
     modelId?: string,
-    agentId?: string,
-    objective: string
+    agentId?: string
   ): Promise<number> {
     try {
       if (modelId) {
@@ -585,9 +586,9 @@ export class SelfOptimizationService {
           where: { id: experimentId },
           data: {
             totalTrials: trial + 1,
-            bestModel,
+            bestModel: bestModel as any,
             bestScore,
-            leaderboard: leaderboard.sort((a, b) => b.score - a.score)
+            leaderboard: leaderboard.sort((a, b) => b.score - a.score) as any
           }
         });
 
@@ -830,7 +831,7 @@ export class SelfOptimizationService {
   }
 
   private calculateAverageImprovement(tuning: any[], experiments: any[]): number {
-    const improvements = [];
+    const improvements: number[] = [];
     
     tuning.forEach(t => {
       if (t.bestScore && t.bestScore > this.getBaselineScore(t.objective)) {

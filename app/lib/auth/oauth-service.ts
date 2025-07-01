@@ -85,7 +85,7 @@ export class OAuthService {
         where: {
           name_tenantId: {
             name: config.name,
-            tenantId: config.tenantId || null
+            tenantId: config.tenantId as string
           }
         },
         create: {
@@ -114,7 +114,7 @@ export class OAuthService {
           resource: 'oauth_provider',
           resourceId: provider.id,
           details: { provider: config.name, configured: true },
-          tenantId: config.tenantId
+          tenantId: config.tenantId || undefined
         });
       }
 
@@ -145,7 +145,7 @@ export class OAuthService {
         where: {
           name_tenantId: {
             name,
-            tenantId: tenantId || null
+            tenantId: tenantId as string
           }
         }
       });
@@ -380,7 +380,7 @@ export class OAuthService {
           resource: 'oauth_provider',
           resourceId: provider.id,
           details: { provider: provider.name, disabled: true },
-          tenantId: provider.tenantId
+          tenantId: provider.tenantId || undefined
         });
       }
 

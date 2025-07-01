@@ -63,13 +63,13 @@ async function seedEventOrchestration() {
           description: workflow.description,
           version: workflow.version,
           triggerEvent: workflow.triggerEvent,
-          steps: workflow.steps,
+          steps: workflow.steps as any,
           isActive: workflow.isActive,
           tenantId: tenant.id
         },
         update: {
           description: workflow.description,
-          steps: workflow.steps,
+          steps: workflow.steps as any,
           isActive: workflow.isActive
         }
       });

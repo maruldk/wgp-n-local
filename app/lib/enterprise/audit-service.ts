@@ -212,7 +212,7 @@ class AuditService {
     userId: string,
     resource: string,
     resourceId: string,
-    action: 'READ' | 'create' | 'update' | 'delete',
+    action: 'read' | 'create' | 'update' | 'delete',
     details: Record<string, any> = {},
     tenantId?: string
   ): Promise<void> {

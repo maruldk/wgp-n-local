@@ -393,7 +393,7 @@ export function ActivityFeedWidget({
           data: event.data
         };
         
-        setActivities(prev => [newActivity, ...prev.slice(0, 19)]); // Keep last 20
+        setActivities((prev: any[]) => [newActivity, ...prev.slice(0, 19)]); // Keep last 20
       }
     });
 
@@ -581,7 +581,7 @@ export function CalendarHeatmapWidget({
   const getIntensity = (date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
     const value = data[dateStr] || 0;
-    const maxValue = Math.max(...Object.values(data));
+    const maxValue = Math.max(...Object.values(data).map(v => Number(v) || 0));
     
     if (maxValue === 0) return 0;
     return (value / maxValue) * 100;

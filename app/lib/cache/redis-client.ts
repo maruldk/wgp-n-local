@@ -13,7 +13,6 @@ class RedisClient {
           port: parseInt(process.env.REDIS_PORT || '6379'),
           password: process.env.REDIS_PASSWORD,
           maxRetriesPerRequest: 3,
-          retryDelayOnFailover: 100,
           enableReadyCheck: true,
           lazyConnect: true,
         });
